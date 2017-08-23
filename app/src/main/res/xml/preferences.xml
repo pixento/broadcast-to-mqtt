@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <PreferenceCategory android:title="Connection">
+
+        <EditTextPreference
+            android:key="pref_host"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:title="Host" />
+        <EditTextPreference
+            android:defaultValue="8883"
+            android:key="pref_port"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:title="Port" />
+        <SwitchPreference
+            android:defaultValue="false"
+            android:key="pref_tls"
+            android:title="TLS" />
+    </PreferenceCategory>
+    <PreferenceCategory android:title="Authentication">
+
+        <EditTextPreference
+            android:key="pref_username"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:title="Username" />
+        <EditTextPreference
+            android:key="pref_password"
+            android:password="true"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:title="Password" />
+        <EditTextPreference
+            android:key="pref_device_id"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:title="Device id" />
+    </PreferenceCategory>
+</PreferenceScreen>
