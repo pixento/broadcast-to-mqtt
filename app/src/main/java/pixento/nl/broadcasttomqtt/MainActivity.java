@@ -40,6 +40,9 @@ public class MainActivity extends AppCompatActivity {
 
         connection = new MqttConnection(this.getApplicationContext());
 
+        // Start the service
+        Intent serviceIntent = new Intent(this, MqttBroadcastService.class);
+        startService(serviceIntent);
     }
 
     @Override

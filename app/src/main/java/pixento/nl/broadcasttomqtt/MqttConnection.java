@@ -106,6 +106,9 @@ public class MqttConnection {
         }
     }
 
+    public boolean isConnected() {
+        return mqttAndroidClient.isConnected();
+    }
 
     public void publish(String message) {
         try {

@@ -2,8 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
           package="pixento.nl.broadcasttomqtt">
 
-    <uses-permission android:name="android.permission.WAKE_LOCK" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
     <uses-permission android:name="android.permission.INTERNET"/>
 
     <application
@@ -28,6 +28,18 @@
             android:label="@string/title_activity_settings"/>
         <!-- Mqtt Service -->
         <service android:name="org.eclipse.paho.android.service.MqttService">
+        </service>
+
+        <receiver
+            android:name=".SubBroadcastReceiver"
+            android:enabled="true"
+            android:exported="true">
+        </receiver>
+
+        <service
+            android:name=".MqttBroadcastService"
+            android:enabled="true"
+            android:exported="true">
         </service>
     </application>
 
