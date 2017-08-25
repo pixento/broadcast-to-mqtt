@@ -9,7 +9,7 @@
             android:singleLine="true"
             android:title="Host" />
         <EditTextPreference
-            android:defaultValue="8883"
+            android:defaultValue="1883"
             android:key="pref_port"
             android:selectAllOnFocus="true"
             android:singleLine="true"
