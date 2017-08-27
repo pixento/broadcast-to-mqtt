@@ -16,6 +16,7 @@ import android.widget.TextView;
 public class MainActivity extends AppCompatActivity {
 
     private MqttConnection connection;
+    private int i = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -29,7 +30,7 @@ public class MainActivity extends AppCompatActivity {
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                connection.publish("Hello World!!");
+                connection.enqueue("Hello World!! "+ i++);
                 Snackbar.make(view, "Sending message", Snackbar.LENGTH_LONG).setAction("Action", null).show();
             }
         });
@@ -38,8 +39,13 @@ public class MainActivity extends AppCompatActivity {
         TextView testText = (TextView)findViewById(R.id.main_text);
         testText.setText(prefs.getString("pref_host", ""));
 
-        connection = new MqttConnection(this.getApplicationContext());
-
+        connection = MqttConnection.getInstance(this.getApplicationContext());
+        connection.enqueue("Hello World!! p"+ i++);
+        connection.enqueue("Hello World!! p"+ i++);
+        connection.enqueue("Hello World!! p"+ i++);
+        connection.enqueue("Hello World!! p"+ i++);
+        connection.enqueue("Hello World!! p"+ i++);
+        
         // Start the service
         Intent serviceIntent = new Intent(this, MqttBroadcastService.class);
         startService(serviceIntent);

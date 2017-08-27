@@ -19,8 +19,8 @@ public class SubBroadcastReceiver extends BroadcastReceiver {
         String action = intent.getAction();
         Log.v(TAG, "Receveid bc: "+ action);
 
-        MqttConnection connection = new MqttConnection(context);
-
-        connection.publish(action);
+        // Get the MqttConnection instance and enqueue the message
+        MqttConnection connection = MqttConnection.getInstance(context);
+        connection.enqueue(action);
     }
 }
