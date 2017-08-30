@@ -3,6 +3,7 @@
 /.idea/
 .DS_Store
 /captures
+mqtt-spy*
 
 # Built application files
 *.apk

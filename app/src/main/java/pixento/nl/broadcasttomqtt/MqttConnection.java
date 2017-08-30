@@ -3,6 +3,7 @@ package pixento.nl.broadcasttomqtt;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
+import android.text.TextUtils;
 import android.util.Log;
 
 import org.eclipse.paho.android.service.MqttAndroidClient;
@@ -14,6 +15,8 @@ import org.eclipse.paho.client.mqttv3.MqttCallbackExtended;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.util.LinkedList;
 import java.util.ListIterator;
@@ -28,29 +31,39 @@ public class MqttConnection {
     private static MqttConnection instance = null;
     private MqttAndroidClient mqttAndroidClient;
     private SharedPreferences prefs;
-    private LinkedList<BroadcastMessage> queue = new LinkedList<BroadcastMessage>();
+    private LinkedList<JSONObject> queue = new LinkedList<>();
     
     private String serverUri;
-    // private final String clientId = "BroadcastToMQTTAndroid";
-    private final String clientId = "BroadcastToMQTTAndroid";
-    private String publishTopic = "android/broadcast";
     private static final String TAG = "MqttConnection";
+    private final String clientId = "BroadcastToMQTTAndroid";
     
-    public static MqttConnection getInstance(Context context) {
+    private String basePublishTopic = "android/broadcast";
+    private String publishTopic;
+    private String username;
+    private String password;
+    
+    static MqttConnection getInstance() {
+        if (instance != null) {
+            return instance;
+        }
+        return null;
+    }
+    
+    static MqttConnection getInstance(Context context) {
         if (instance == null) {
             instance = new MqttConnection(context);
         }
         return instance;
     }
     
-    private MqttConnection(Context context) {
-        prefs = PreferenceManager.getDefaultSharedPreferences(context);
-        String server = prefs.getString("pref_host", "");
-        String port = prefs.getString("pref_port", "1883");
-        serverUri = "tcp://" + server + ":" + port;
+    public static String getDefaultDeviceId() {
+        return android.os.Build.MODEL.replaceAll("(\\s+)", "-").toLowerCase();
+    }
     
+    private MqttConnection(Context context) {
+        // Get the server uri etc from prefs, and enqueue first event
+        this.updatePreferences(context);
         this.enqueue("pixento.nl.broadcasttomqtt.START");
-        
         
         // Create the MQTT client and set the callback class
         mqttAndroidClient = new MqttAndroidClient(context, serverUri, clientId);
@@ -89,13 +102,40 @@ public class MqttConnection {
         this.connect();
     }
     
+    void updatePreferences(Context context) {
+        Log.v(TAG, "Getting the updated preferences");
+        
+        if(context != null) {
+            prefs = PreferenceManager.getDefaultSharedPreferences(context);
+        }
+        
+        // Get the preferences needed
+        String server = prefs.getString("pref_host", "");
+        String port = prefs.getString("pref_port", "1883");
+        String deviceid = prefs.getString("pref_device_id", MqttConnection.getDefaultDeviceId());
+
+        // Set the topic and server uri
+        publishTopic = TextUtils.join("/", new String[] {basePublishTopic, deviceid});
+        serverUri = "tcp://" + server + ":" + port;
+
+        // Get the username and password
+        username = prefs.getString("pref_username", "");
+        password = prefs.getString("pref_password", "");
+        
+        // Disconnect, and try to publish all messages, in case the credentials/server settings
+        // were wrong
+        if(this.isInstantiated()) {
+            if(this.isConnected()) {
+                this.disconnect();
+            }
+            this.publishAll();
+        }
+    }
+    
     /**
      * Connect to the configured MQTT server
      */
-    public void connect() {
-        String username = prefs.getString("pref_username", "");
-        String password = prefs.getString("pref_password", "");
-        
+    void connect() {
         MqttConnectOptions mqttConnectOptions = new MqttConnectOptions();
         //mqttConnectOptions.setAutomaticReconnect(true);
         mqttConnectOptions.setKeepAliveInterval(10);
@@ -106,7 +146,7 @@ public class MqttConnection {
         } catch (IllegalArgumentException e) {
             e.printStackTrace();
         }
-    
+        
         try {
             Log.i(TAG, "Connecting to " + serverUri);
             mqttAndroidClient.connect(mqttConnectOptions, null, new IMqttActionListener() {
@@ -120,35 +160,45 @@ public class MqttConnection {
                     mqttAndroidClient.setBufferOpts(disconnectedBufferOptions);
                     // subscribeToTopic();
                 }
-            
+                
                 @Override
                 public void onFailure(IMqttToken asyncActionToken, Throwable exception) {
                     Log.i(TAG, "Failed to connect to: " + serverUri);
                     exception.printStackTrace();
                 }
             });
-        
-        
+            
+            
         } catch (MqttException ex) {
             ex.printStackTrace();
         }
     }
     
-    public boolean isConnected() {
+    boolean isConnected() {
         return mqttAndroidClient != null && mqttAndroidClient.isConnected();
     }
     
-    public boolean isInstantiated() {
+    boolean isInstantiated() {
         return mqttAndroidClient != null;
     }
     
-    
-    public void enqueue(String message) {
-        queue.add(new BroadcastMessage(message));
+    void enqueue(JSONObject json) {
+        queue.add(json);
         this.publishAll();
     }
     
-    public void disconnect() {
+    void enqueue(String message) {
+        JSONObject payload = new JSONObject();
+        try {
+            payload.put("action", message);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+    
+        this.enqueue(payload);
+    }
+    
+    void disconnect() {
         try {
             mqttAndroidClient.disconnect();
             Log.i(TAG, "Disconnected MQTT client");
@@ -160,20 +210,20 @@ public class MqttConnection {
     
     private void publishAll() {
         // Wait for instantiation
-        if(!this.isInstantiated()) {
+        if (!this.isInstantiated()) {
             return;
         }
         
         // Connect if disconnected, and return, this function will be called again after connection.
-        if(!this.isConnected() && this.isInstantiated()) {
+        if (!this.isConnected() && this.isInstantiated()) {
             this.connect();
             return;
         }
         
         // Walk through the queue and publish all messages
-        ListIterator<BroadcastMessage> queueIterator = queue.listIterator();
-        while(queueIterator.hasNext()) {
-            if(this.publish(queueIterator.next())) {
+        ListIterator<JSONObject> queueIterator = queue.listIterator();
+        while (queueIterator.hasNext()) {
+            if (this.publish(queueIterator.next())) {
                 queueIterator.remove();
             }
         }
@@ -182,17 +232,17 @@ public class MqttConnection {
         this.disconnect();
     }
     
-    private boolean publish(BroadcastMessage message) {
+    private boolean publish(JSONObject message) {
         try {
             // Create the MQTT message, and publish!
             MqttMessage mqttMessage = new MqttMessage();
-            mqttMessage.setPayload(message.event.getBytes());
+            mqttMessage.setPayload(message.toString().getBytes());
             mqttMessage.setQos(1);
             
             mqttAndroidClient.publish(publishTopic, mqttMessage);
-                        
+            
             // Some nice logging, yeah!
-            Log.i(TAG, "Message Published: "+ message.toString());
+            Log.i(TAG, "Message Published: " + message.toString());
             if (!this.isConnected()) {
                 Log.i(TAG, mqttAndroidClient.getBufferedMessageCount() + " messages in buffer.");
             }
@@ -205,28 +255,6 @@ public class MqttConnection {
             e.printStackTrace();
             
             return false;
-        }
-    }
-    
-    
-    private class BroadcastMessage {
-        String event;
-        String payload;  // Not used for now, to add broadcast extra's in future
-        
-        
-        BroadcastMessage(String event, String payload) {
-            this.event = event;
-            this.payload = payload;
-        }
-        
-        BroadcastMessage(String event) {
-            this.event = event;
-            this.payload = "";
-        }
-        
-        @Override
-        public String toString() {
-            return "<" + event + ", " + payload + ">";
         }
     }
 }

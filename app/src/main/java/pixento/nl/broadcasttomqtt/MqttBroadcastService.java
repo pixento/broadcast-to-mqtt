@@ -4,8 +4,12 @@ import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.os.IBinder;
+import android.preference.PreferenceManager;
 import android.util.Log;
+
+import java.util.HashSet;
 
 /**
  * The MqttBroadcastService runs in the background and makes sure that the dynamically registered
@@ -30,11 +34,17 @@ public class MqttBroadcastService extends Service {
     public void onCreate() {
         super.onCreate();
 
-        // Create the intent filters
+        // Get the broadcasts from prefs
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        BroadcastItemList bcItems = new BroadcastItemList(
+            prefs.getStringSet(MainActivity.bcPrefsKey, new HashSet<String>())
+        );
+        
+        // Create the intent filters from the set of bc's from the prefs
         IntentFilter filter = new IntentFilter();
-        filter.addAction("com.sonyericsson.alarm.ALARM_ALERT");
-        filter.addAction("com.android.deskclock.ALARM_ALERT");
-        filter.addAction("com.android.alarmclock.ALARM_ALERT");
+        for (BroadcastItem item : bcItems) {
+            filter.addAction(item.action);
+        }
 
         // Register the BroadcastReceiver
         broadcastReceiver = new SubBroadcastReceiver();
