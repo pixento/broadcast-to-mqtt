@@ -1,11 +1,15 @@
 package pixento.nl.broadcasttomqtt;
 
 import android.content.Context;
+import android.text.format.DateUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.TextView;
+
+import java.util.Date;
+import java.util.Locale;
 
 /**
  * Created by corniel on 30-8-2017.
@@ -65,11 +69,15 @@ public class BroadcastItemAdapter extends BaseAdapter {
         // Set the text views content
         viewHolder.aliasView.setText(item.alias);
         viewHolder.actionView.setText(item.action);
-        viewHolder.countView.setText(Integer.toString(item.count_executed));
+        viewHolder.countView.setText(String.format(Locale.getDefault(), "%d times", item.count_executed));
     
-        String date = "";
+        String date = "Never";
         if(item.last_executed != null) {
-            date = item.last_executed.toString();
+            date = DateUtils.getRelativeTimeSpanString(
+                    item.last_executed.getTime(),
+                    System.currentTimeMillis(),
+                    DateUtils.MINUTE_IN_MILLIS
+            ).toString();
         }
         viewHolder.dateView.setText(date);
             
