@@ -41,6 +41,15 @@
             android:enabled="true"
             android:exported="true">
         </service>
+
+        <receiver
+            android:name=".RetryBroadcastReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="pixento.nl.broadcasttomqtt.RETRY_MQTT_MESSAGES"/>
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>

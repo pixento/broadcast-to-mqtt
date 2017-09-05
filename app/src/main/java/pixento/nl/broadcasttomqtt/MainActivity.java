@@ -1,5 +1,6 @@
 package pixento.nl.broadcasttomqtt;
 
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
@@ -28,6 +29,8 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        final Context context = this.getApplicationContext();
+
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -62,19 +65,21 @@ public class MainActivity extends AppCompatActivity {
         
         // Create the listview
         bcListView = (ListView) findViewById(R.id.broadcast_list);
-        BroadcastItemAdapter adapter = new BroadcastItemAdapter(this.getApplicationContext(), bcItems);
+        BroadcastItemAdapter adapter = new BroadcastItemAdapter(context, bcItems);
         bcListView.setAdapter(adapter);
         
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                connection.enqueue("Test message");
+                connection.setRetryAlarm(context);
                 Snackbar.make(view, "ToDo :-D", Snackbar.LENGTH_LONG).setAction("Action", null).show();
             }
         });
 
         // Instantiate the MQTT connection
-        connection = MqttConnection.getInstance(this.getApplicationContext());
+        connection = MqttConnection.getInstance(context);
         
         // Start the service which registers the broadcastreceiver
         Intent serviceIntent = new Intent(this, MqttBroadcastService.class);

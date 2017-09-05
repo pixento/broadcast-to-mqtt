@@ -30,7 +30,7 @@ public class SubBroadcastReceiver extends BroadcastReceiver {
         // Get the action
         String action = intent.getAction();
         Bundle extras = intent.getExtras();
-    
+
         // Get the preferences manager
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
         
@@ -70,5 +70,8 @@ public class SubBroadcastReceiver extends BroadcastReceiver {
         // Get the MqttConnection instance and enqueue the message
         MqttConnection connection = MqttConnection.getInstance(context);
         connection.enqueue(payload);
+
+        // Set an retry alarm in case some messages were not sent
+        connection.setRetryAlarm(context);
     }
 }
