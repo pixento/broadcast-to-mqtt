@@ -48,7 +48,7 @@ public class SubBroadcastReceiver extends BroadcastReceiver {
         editor.putStringSet(bcPrefsKey, bcItems.toStringSet());
         editor.commit();
         
-        Log.v(TAG, "Receveid bc: " + action);
+        Log.v(TAG, "Received bc: " + action);
         
         // Create a JSON object with all data from the intent
         JSONObject payload = new JSONObject();

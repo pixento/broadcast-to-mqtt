@@ -7,10 +7,14 @@ import java.util.Date;
  */
 
 public class BroadcastItem {
-    public String action;
-    public String alias;
+    public String action = "";
+    public String alias = "";
     public Date last_executed;
     public int count_executed;
+    
+    BroadcastItem() {
+        
+    }
     
     BroadcastItem(String action, String alias) {
         this.action = action;

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-          package="pixento.nl.broadcasttomqtt">
+<manifest package="pixento.nl.broadcasttomqtt"
+          xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
@@ -15,20 +15,33 @@
         android:theme="@style/AppTheme">
         <activity
             android:name=".MainActivity"
-            android:label="@string/app_name"
-            android:theme="@style/AppTheme.NoActionBar">
+            android:label="@string/app_name">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
-
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+
         <activity
             android:name=".SettingsActivity"
-            android:label="@string/title_activity_settings"/>
+            android:label="@string/title_activity_settings"
+            android:parentActivityName=".MainActivity">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".MainActivity"/>
+        </activity>
+
+        <activity
+            android:name=".EditBroadcastActivity"
+            android:label="@string/title_activity_edit_broadcast"
+            android:parentActivityName=".MainActivity">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".MainActivity"/>
+        </activity>
+
         <!-- Mqtt Service -->
-        <service android:name="org.eclipse.paho.android.service.MqttService">
-        </service>
+        <service android:name="org.eclipse.paho.android.service.MqttService"/>
 
         <receiver
             android:name=".SubBroadcastReceiver"
@@ -50,6 +63,7 @@
                 <action android:name="pixento.nl.broadcasttomqtt.RETRY_MQTT_MESSAGES"/>
             </intent-filter>
         </receiver>
+
     </application>
 
 </manifest>

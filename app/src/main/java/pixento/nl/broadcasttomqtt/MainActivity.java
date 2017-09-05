@@ -1,24 +1,23 @@
 package pixento.nl.broadcasttomqtt;
 
-import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ListView;
 
 import java.util.HashSet;
 import java.util.Set;
 
 public class MainActivity extends AppCompatActivity {
-
+    
     private MqttConnection connection;
     private ListView bcListView;
     private int i = 0;
@@ -29,7 +28,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        final Context context = this.getApplicationContext();
 
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
@@ -65,21 +63,31 @@ public class MainActivity extends AppCompatActivity {
         
         // Create the listview
         bcListView = (ListView) findViewById(R.id.broadcast_list);
-        BroadcastItemAdapter adapter = new BroadcastItemAdapter(context, bcItems);
+        BroadcastItemAdapter adapter = new BroadcastItemAdapter(this, bcItems);
         bcListView.setAdapter(adapter);
+        bcListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int pos, long id) {
+                Intent intent = new Intent(MainActivity.this, EditBroadcastActivity.class);
+                BroadcastItem item = (BroadcastItem) adapterView.getItemAtPosition(pos);
+                intent.putExtra(EditBroadcastActivity.EDIT_BROADCAST_ACTION, item.action);
+                startActivity(intent);
+            }
+        });
         
+        // Create the floating action button
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                connection.enqueue("Test message");
-                connection.setRetryAlarm(context);
-                Snackbar.make(view, "ToDo :-D", Snackbar.LENGTH_LONG).setAction("Action", null).show();
+                //Snackbar.make(view, "ToDo :-D", Snackbar.LENGTH_LONG).setAction("Action", null).show();
+                Intent intent = new Intent(MainActivity.this, EditBroadcastActivity.class);
+                startActivity(intent);
             }
         });
 
         // Instantiate the MQTT connection
-        connection = MqttConnection.getInstance(context);
+        connection = MqttConnection.getInstance(this);
         
         // Start the service which registers the broadcastreceiver
         Intent serviceIntent = new Intent(this, MqttBroadcastService.class);

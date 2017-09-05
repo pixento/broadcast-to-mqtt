@@ -61,7 +61,7 @@
         <item>3</item>
     </string-array>
 
-    <string-array name="multi_select_list_preference_default_value" />
+    <string-array name="multi_select_list_preference_default_value"/>
 
     <string name="pref_title_system_sync_settings">System sync settings</string>
 
@@ -75,6 +75,7 @@
 
     <string name="pref_title_vibrate">Vibrate</string>
 
-    <!-- TODO: Remove or change this placeholder text -->
-    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="title_activity_edit_broadcast">Edit Broadcast</string>
+    <string name="broadcast_action">Broadcast action</string>
+    <string name="alias">Alias</string>
 </resources>

@@ -31,7 +31,7 @@ import java.util.ListIterator;
 
 public class MqttConnection {
 
-    private static final int RETRY_TIME = 10;
+    private static final int RETRY_TIME = 20;
     private static MqttConnection instance = null;
     private MqttAndroidClient mqttAndroidClient;
     private SharedPreferences prefs;
@@ -184,8 +184,7 @@ public class MqttConnection {
 
                 @Override
                 public void onFailure(IMqttToken asyncActionToken, Throwable exception) {
-                    Log.i(TAG, "Failed to connect to: " + serverUri);
-                    exception.printStackTrace();
+                    Log.i(TAG, "Failed to connect to " + serverUri +": "+ exception.getCause());
                 }
             });
 
@@ -295,7 +294,6 @@ public class MqttConnection {
         } catch (MqttException e) {
             // Oepsidaisy
             Log.i(TAG, "Error Publishing: " + e.getMessage());
-            // e.printStackTrace();
 
             return false;
         }
