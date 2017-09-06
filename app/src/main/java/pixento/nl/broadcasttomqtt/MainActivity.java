@@ -9,16 +9,16 @@ import android.preference.PreferenceManager;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
+import android.widget.ImageView;
 import android.widget.ListView;
+import android.widget.ProgressBar;
+import android.widget.TextView;
 
 import java.util.HashSet;
-import java.util.Objects;
-import java.util.Set;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -98,25 +98,89 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        // Instantiate the MQTT connection
+        // Instantiate the MQTT connection and register for connection state changes
         MqttConnection connection = MqttConnection.getInstance(this.getApplicationContext());
+        connection.setKeepAlive(true);
+        this.updateConnectionStateView(connection.connectionState.state);
+        connection.connectionState.registerListener(new ConnectionState.ConnectionStateListener() {
+            @Override
+            public void onChange(ConnectionState.State newState) {
+                MainActivity.this.updateConnectionStateView(newState);
+            }
+        });
+        
         
         // Start the service which registers the broadcastreceiver
         Intent serviceIntent = new Intent(this, MqttBroadcastService.class);
         startService(serviceIntent);
     }
 
+    private void updateConnectionStateView(ConnectionState.State state) {
+        final ImageView icon = (ImageView) findViewById(R.id.connection_icon);
+        final ProgressBar connecting = (ProgressBar) findViewById(R.id.progress_connecting);
+        final TextView description = (TextView) findViewById(R.id.connection_state);
+        
+        // Set icon
+        switch(state) {
+            case CONNECTED:
+                icon.setImageDrawable(getDrawable(R.drawable.lan_connect));
+                break;
+            case CONNECTION_ERROR:
+            case CONNECTING:
+            case DISCONNECTED:
+            case HOST_UNKNOWN:
+                icon.setImageDrawable(getDrawable(R.drawable.lan_disconnect));
+                break;
+        }
+        
+        // Set loading indicator
+        switch(state) {
+            case CONNECTED:
+            case CONNECTION_ERROR:
+            case DISCONNECTED:
+            case HOST_UNKNOWN:
+                connecting.setVisibility(View.GONE);
+                break;
+            case CONNECTING:
+                connecting.setVisibility(View.VISIBLE);
+                break;
+            
+        }
+        
+        // Set text
+        switch(state) {
+            case CONNECTED:
+                description.setText(R.string.connection_connected);
+                break;
+            case CONNECTION_ERROR:
+                description.setText(R.string.connection_connection_error);
+                break;
+            case CONNECTING:
+                description.setText(R.string.connection_connecting);
+                break;
+            case DISCONNECTED:
+                description.setText(R.string.connection_disconnected);
+                break;
+            case HOST_UNKNOWN:
+                description.setText(R.string.connection_unknown_host);
+                break;
+        }
+        
+    }
+    
     private void updateBCListView(SharedPreferences prefs) {
         // Get the broadcast items from preference manager
         bcItems = new BroadcastItemList(
                 prefs.getStringSet(bcPrefsKey, new HashSet<String>())
         );
-
-        // Update the dataset
-        adapter.updateDataSet(bcItems);
-
-        // Notify the change
-        adapter.notifyDataSetChanged();
+        
+        if(adapter != null) {
+            // Update the dataset
+            adapter.updateDataSet(bcItems);
+    
+            // Notify the change
+            adapter.notifyDataSetChanged();
+        }
     }
 
     @Override
@@ -153,5 +217,14 @@ public class MainActivity extends AppCompatActivity {
         }
 
         return super.onOptionsItemSelected(item);
+    }
+    
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+    
+        // Set the MqttConnection to not keep the connection alive
+        MqttConnection connection = MqttConnection.getInstance(this.getApplicationContext());
+        connection.setKeepAlive(false);
     }
 }

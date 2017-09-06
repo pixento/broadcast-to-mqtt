@@ -79,4 +79,12 @@
     <string name="broadcast_action">Broadcast action</string>
     <string name="alias">Alias</string>
     <string name="broadcast_rate_limit">Rate limit (min. time between messages)</string>
+
+
+    <!-- Connection descriptions -->
+    <string name="connection_connected">Connected to MQTT broker</string>
+    <string name="connection_connection_error">Error connecting, check your settings.</string>
+    <string name="connection_connecting">Connecting to MQTT broker</string>
+    <string name="connection_disconnected">Not connected to MQTT broker</string>
+    <string name="connection_unknown_host">Error connecting, check your server settings.</string>
 </resources>
