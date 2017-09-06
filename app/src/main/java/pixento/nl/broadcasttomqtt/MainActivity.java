@@ -2,6 +2,8 @@ package pixento.nl.broadcasttomqtt;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.PorterDuff;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.design.widget.FloatingActionButton;
@@ -18,9 +20,9 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 
+
 public class MainActivity extends AppCompatActivity {
 
-    private MqttConnection connection;
     private BroadcastItemAdapter adapter;
     private BroadcastItemList bcItems = new BroadcastItemList();
     private ListView bcListView;
@@ -97,7 +99,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
         // Instantiate the MQTT connection
-        connection = MqttConnection.getInstance(this);
+        MqttConnection connection = MqttConnection.getInstance(this.getApplicationContext());
         
         // Start the service which registers the broadcastreceiver
         Intent serviceIntent = new Intent(this, MqttBroadcastService.class);
@@ -121,6 +123,18 @@ public class MainActivity extends AppCompatActivity {
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_main, menu);
+
+        for(int i = 0; i < menu.size(); i++){
+            Drawable drawable = menu.getItem(i).getIcon();
+            if(drawable != null) {
+                drawable.mutate();
+                drawable.setAlpha(255);
+                // drawable.setTint(getResources().getColor(android.R.color.white));
+                // drawable.setTintMode(PorterDuff.Mode.DST_ATOP);
+                drawable.setColorFilter(getResources().getColor(android.R.color.white), PorterDuff.Mode.DST_IN);
+            }
+        }
+
         return true;
     }
 

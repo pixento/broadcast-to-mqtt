@@ -26,7 +26,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:ems="10"
-            android:inputType="textPersonName"
+            android:inputType="text"
             />
 
         <TextView
@@ -40,7 +40,20 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:ems="10"
-            android:inputType="textPersonName"/>
+            android:inputType="text"/>
+
+        <TextView
+            android:id="@+id/title_rate_limit"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/broadcast_rate_limit"/>
+
+        <EditText
+            android:id="@+id/input_rate_limit"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ems="10"
+            android:inputType="number"/>
     </LinearLayout>
 
 

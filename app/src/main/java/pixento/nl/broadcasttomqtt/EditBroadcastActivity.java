@@ -25,7 +25,8 @@ public class EditBroadcastActivity extends AppCompatActivity {
     BroadcastItem broadcast;
     EditText edit_alias;
     EditText edit_action;
-    
+    EditText edit_rate_limit;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -59,21 +60,37 @@ public class EditBroadcastActivity extends AppCompatActivity {
         // Find the inputs, and set the values
         edit_alias = (EditText) findViewById(R.id.input_alias);
         edit_action = (EditText) findViewById(R.id.input_action);
+        edit_rate_limit = (EditText) findViewById(R.id.input_rate_limit);
         edit_alias.setText(broadcast.alias);
         edit_action.setText(broadcast.action);
+        edit_rate_limit.setText(Integer.toString(broadcast.rate_limit));
     }
     
-    void saveBroadcasts() {
+    void saveBroadcast() {
         // Get the text inputs, and set to broadcast
         broadcast.alias = edit_alias.getText().toString();
         broadcast.action = edit_action.getText().toString();
-        
+        broadcast.rate_limit = Integer.parseInt(edit_rate_limit.getText().toString());
+
+        // And save the list
+        this.saveBroadcastPrefs();
+    }
+
+    void deleteBroadcast() {
+        // Remove the broadcast from the list
+        bcItems.remove(broadcast);
+
+        // And save the list
+        this.saveBroadcastPrefs();
+    }
+
+    void saveBroadcastPrefs() {
         // Save the prefs
         SharedPreferences.Editor editor = prefs.edit();
         editor.putStringSet(bcPrefsKey, bcItems.toStringSet());
         editor.apply();
     }
-    
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
@@ -90,10 +107,13 @@ public class EditBroadcastActivity extends AppCompatActivity {
         
         switch (id) {
             case R.id.action_delete:
+                // Delete the item and navigate up
+                this.deleteBroadcast();
+                NavUtils.navigateUpFromSameTask(this);
                 break;
             case R.id.action_save:
                 // Save the broadcasts
-                this.saveBroadcasts();
+                this.saveBroadcast();
                 break;
             // Respond to the action bar's Up/Home button
             case android.R.id.home:

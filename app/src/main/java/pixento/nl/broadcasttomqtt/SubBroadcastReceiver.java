@@ -11,6 +11,7 @@ import android.util.Log;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
@@ -40,6 +41,14 @@ public class SubBroadcastReceiver extends BroadcastReceiver {
         
         // Find the broadcast item of the current intent, and get a reference
         BroadcastItem current = bcItems.search(action);
+
+        // Determine if we should ignore the broadcast due to the rate limit
+        int seconds_ago = (int) (new Date().getTime() - current.last_executed.getTime()) / 1000;
+        if(seconds_ago < current.rate_limit) {
+            // abort, we reached the rate limit
+            return;
+        }
+
         current.count_executed++;
         current.last_executed = new Date();
         
@@ -56,7 +65,8 @@ public class SubBroadcastReceiver extends BroadcastReceiver {
             // Add the action and alias
             payload.put("action", action);
             payload.put("alias", current.alias);
-            
+            payload.put("count", current.count_executed);
+
             // if no extras have been added to the intent, extras = null
             if(extras != null) {
                 for (String key : extras.keySet()) {
