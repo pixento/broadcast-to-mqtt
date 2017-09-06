@@ -4,6 +4,8 @@ import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -30,6 +32,8 @@ public class BroadcastItemList extends ArrayList<BroadcastItem> {
                 this.add(new BroadcastItem(jsonItem, jsonItem));
             }
         }
+
+        Collections.sort(this, new AliasComparator());
     }
     
     public Set<String> toStringSet() {
@@ -50,5 +54,16 @@ public class BroadcastItemList extends ArrayList<BroadcastItem> {
             }
         }
         return null;
+    }
+
+    public class AliasComparator implements Comparator<BroadcastItem> {
+        @Override
+        public int compare(BroadcastItem bc1, BroadcastItem bc2) {
+            int str_compare = bc1.alias.compareToIgnoreCase(bc2.alias);
+            if(str_compare == 0) {
+                return bc2.count_executed - bc1.count_executed;
+            }
+            return str_compare;
+        }
     }
 }

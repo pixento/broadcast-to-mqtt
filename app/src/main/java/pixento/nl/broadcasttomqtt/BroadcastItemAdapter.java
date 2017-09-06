@@ -16,7 +16,7 @@ import java.util.Locale;
 
 public class BroadcastItemAdapter extends BaseAdapter {
     private final Context context;
-    private final BroadcastItemList items;
+    private BroadcastItemList items;
     
     BroadcastItemAdapter(Context context, BroadcastItemList items) {
         this.context = context;
@@ -82,7 +82,11 @@ public class BroadcastItemAdapter extends BaseAdapter {
             
         return convertView;
     }
-    
+
+    void updateDataSet(BroadcastItemList items) {
+        this.items = items;
+    }
+
     static class ViewHolder {
         TextView aliasView;
         TextView actionView;

@@ -7,6 +7,7 @@ import android.preference.PreferenceManager;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -14,13 +15,15 @@ import android.widget.AdapterView;
 import android.widget.ListView;
 
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 public class MainActivity extends AppCompatActivity {
-    
+
     private MqttConnection connection;
+    private BroadcastItemAdapter adapter;
+    private BroadcastItemList bcItems = new BroadcastItemList();
     private ListView bcListView;
-    private int i = 0;
     
     private static final String TAG = "MainActivity";
     static final String bcPrefsKey = "broadcast_items";
@@ -35,7 +38,15 @@ public class MainActivity extends AppCompatActivity {
         
         // Get the preferences for the list of broadcasts to listen for
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-    
+        prefs.registerOnSharedPreferenceChangeListener(new SharedPreferences.OnSharedPreferenceChangeListener() {
+            @Override
+            public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+                if(key.equals(bcPrefsKey)) {
+                    MainActivity.this.updateBCListView(sharedPreferences);
+                }
+            }
+        });
+
         // No broadcasts set yet, this is the first run of the app!
         if(!prefs.contains(bcPrefsKey)) {
             // Add some default broadcasts to the config as example
@@ -56,14 +67,10 @@ public class MainActivity extends AppCompatActivity {
             editor.putString("pref_device_id", MqttConnection.getDefaultDeviceId());
             editor.commit();
         }
-        
-        // Get the broadcast items from preference manager
-        Set<String> bcItemsSet = prefs.getStringSet(bcPrefsKey, new HashSet<String>());
-        BroadcastItemList bcItems = new BroadcastItemList(bcItemsSet);
-        
+
         // Create the listview
         bcListView = (ListView) findViewById(R.id.broadcast_list);
-        BroadcastItemAdapter adapter = new BroadcastItemAdapter(this, bcItems);
+        adapter = new BroadcastItemAdapter(this, bcItems);
         bcListView.setAdapter(adapter);
         bcListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
@@ -74,7 +81,10 @@ public class MainActivity extends AppCompatActivity {
                 startActivity(intent);
             }
         });
-        
+
+        // Update the content of the listview
+        this.updateBCListView(prefs);
+
         // Create the floating action button
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
@@ -92,6 +102,19 @@ public class MainActivity extends AppCompatActivity {
         // Start the service which registers the broadcastreceiver
         Intent serviceIntent = new Intent(this, MqttBroadcastService.class);
         startService(serviceIntent);
+    }
+
+    private void updateBCListView(SharedPreferences prefs) {
+        // Get the broadcast items from preference manager
+        bcItems = new BroadcastItemList(
+                prefs.getStringSet(bcPrefsKey, new HashSet<String>())
+        );
+
+        // Update the dataset
+        adapter.updateDataSet(bcItems);
+
+        // Notify the change
+        adapter.notifyDataSetChanged();
     }
 
     @Override
