@@ -9,6 +9,8 @@ import android.preference.PreferenceManager;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
+import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -17,6 +19,7 @@ import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.util.HashSet;
 
@@ -26,10 +29,10 @@ public class MainActivity extends AppCompatActivity {
     private BroadcastItemAdapter adapter;
     private BroadcastItemList bcItems = new BroadcastItemList();
     private ListView bcListView;
-    
+
     private static final String TAG = "MainActivity";
     static final String bcPrefsKey = "broadcast_items";
-    
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -37,34 +40,34 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        
+
         // Get the preferences for the list of broadcasts to listen for
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
         prefs.registerOnSharedPreferenceChangeListener(new SharedPreferences.OnSharedPreferenceChangeListener() {
             @Override
             public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-                if(key.equals(bcPrefsKey)) {
+                if (key.equals(bcPrefsKey)) {
                     MainActivity.this.updateBCListView(sharedPreferences);
                 }
             }
         });
 
         // No broadcasts set yet, this is the first run of the app!
-        if(!prefs.contains(bcPrefsKey)) {
+        if (!prefs.contains(bcPrefsKey)) {
             // Add some default broadcasts to the config as example
             BroadcastItemList defaultBroadcastItems = new BroadcastItemList();
             defaultBroadcastItems.add(new BroadcastItem("com.sonyericsson.alarm.ALARM_ALERT", "Sony alarm"));
             defaultBroadcastItems.add(new BroadcastItem("com.android.deskclock.ALARM_ALERT", "Android alarm"));
             defaultBroadcastItems.add(new BroadcastItem("com.android.alarmclock.ALARM_ALERT", "Android alarm"));
             defaultBroadcastItems.add(new BroadcastItem("com.samsung.sec.android.clockpackage.alarm.ALARM_ALERT", "Samsung alarm"));
-            
+
             SharedPreferences.Editor editor = prefs.edit();
             editor.putStringSet(bcPrefsKey, defaultBroadcastItems.toStringSet());
             editor.commit();
         }
-        
+
         // Make sure a device id is set
-        if(!prefs.contains("pref_device_id")) {
+        if (!prefs.contains("pref_device_id")) {
             SharedPreferences.Editor editor = prefs.edit();
             editor.putString("pref_device_id", MqttConnection.getDefaultDeviceId());
             editor.commit();
@@ -108,8 +111,8 @@ public class MainActivity extends AppCompatActivity {
                 MainActivity.this.updateConnectionStateView(newState);
             }
         });
-        
-        
+
+
         // Start the service which registers the broadcastreceiver
         Intent serviceIntent = new Intent(this, MqttBroadcastService.class);
         startService(serviceIntent);
@@ -119,9 +122,9 @@ public class MainActivity extends AppCompatActivity {
         final ImageView icon = (ImageView) findViewById(R.id.connection_icon);
         final ProgressBar connecting = (ProgressBar) findViewById(R.id.progress_connecting);
         final TextView description = (TextView) findViewById(R.id.connection_state);
-        
+
         // Set icon
-        switch(state) {
+        switch (state) {
             case CONNECTED:
                 icon.setImageDrawable(getDrawable(R.drawable.lan_connect));
                 break;
@@ -132,9 +135,9 @@ public class MainActivity extends AppCompatActivity {
                 icon.setImageDrawable(getDrawable(R.drawable.lan_disconnect));
                 break;
         }
-        
+
         // Set loading indicator
-        switch(state) {
+        switch (state) {
             case CONNECTED:
             case CONNECTION_ERROR:
             case DISCONNECTED:
@@ -144,11 +147,11 @@ public class MainActivity extends AppCompatActivity {
             case CONNECTING:
                 connecting.setVisibility(View.VISIBLE);
                 break;
-            
+
         }
-        
+
         // Set text
-        switch(state) {
+        switch (state) {
             case CONNECTED:
                 description.setText(R.string.connection_connected);
                 break;
@@ -165,19 +168,19 @@ public class MainActivity extends AppCompatActivity {
                 description.setText(R.string.connection_unknown_host);
                 break;
         }
-        
+
     }
-    
+
     private void updateBCListView(SharedPreferences prefs) {
         // Get the broadcast items from preference manager
         bcItems = new BroadcastItemList(
                 prefs.getStringSet(bcPrefsKey, new HashSet<String>())
         );
-        
-        if(adapter != null) {
+
+        if (adapter != null) {
             // Update the dataset
             adapter.updateDataSet(bcItems);
-    
+
             // Notify the change
             adapter.notifyDataSetChanged();
         }
@@ -188,9 +191,9 @@ public class MainActivity extends AppCompatActivity {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_main, menu);
 
-        for(int i = 0; i < menu.size(); i++){
+        for (int i = 0; i < menu.size(); i++) {
             Drawable drawable = menu.getItem(i).getIcon();
-            if(drawable != null) {
+            if (drawable != null) {
                 drawable.mutate();
                 drawable.setAlpha(255);
                 // drawable.setTint(getResources().getColor(android.R.color.white));
@@ -209,22 +212,76 @@ public class MainActivity extends AppCompatActivity {
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
 
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            // Open the Settings window
-            Intent intent = new Intent(this, SettingsActivity.class);
-            startActivity(intent);
+        switch (id) {
+            case R.id.action_settings:
+                // Open the Settings window
+                Intent intent = new Intent(this, SettingsActivity.class);
+                startActivity(intent);
+                return true;
+            // Respond to the action bar's Up/Home button
+            // case android.R.id.home:
+            //     NavUtils.navigateUpFromSameTask(this);
+            //     return false;
         }
 
         return super.onOptionsItemSelected(item);
     }
-    
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        Log.v(TAG, "OnStop called");
+
+
+    }
+
     @Override
     protected void onDestroy() {
         super.onDestroy();
-    
+        Log.v(TAG, "onDestroy called");
+
         // Set the MqttConnection to not keep the connection alive
         MqttConnection connection = MqttConnection.getInstance(this.getApplicationContext());
         connection.setKeepAlive(false);
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        Log.v(TAG, "onStart called");
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        Log.v(TAG, "onPause called");
+    }
+
+    @Override
+    protected void onRestart() {
+        super.onRestart();
+        Log.v(TAG, "onRestart called");
+    }
+
+    /*@Override
+    public void onBackPressed() {
+        Toast.makeText(this, "Thanks for using application!!", Toast.LENGTH_LONG).show();
+        super.onBackPressed();
+        // finish();
+    }*/
+
+    /*@Override
+    public void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        this.getWindow().setType(WindowManager.LayoutParams.TYPE_KEYGUARD_DIALOG);
+    }*/
+
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_HOME || keyCode == KeyEvent.KEYCODE_BACK) {
+            Toast.makeText(this, "Thanks for using application!!", Toast.LENGTH_LONG).show();
+        }
+
+        return super.onKeyDown(keyCode, event);
     }
 }

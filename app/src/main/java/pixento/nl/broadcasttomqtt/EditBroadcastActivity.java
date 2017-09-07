@@ -117,7 +117,8 @@ public class EditBroadcastActivity extends AppCompatActivity {
                 break;
             // Respond to the action bar's Up/Home button
             case android.R.id.home:
-                NavUtils.navigateUpFromSameTask(this);
+                // NavUtils.navigateUpFromSameTask(this);
+                super.onBackPressed();
                 return true;
         }
         

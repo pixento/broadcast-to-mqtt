@@ -7,13 +7,15 @@
             android:key="pref_host"
             android:selectAllOnFocus="true"
             android:singleLine="true"
-            android:title="Host" />
+            android:title="Host"
+            android:inputType="textUri"/>
         <EditTextPreference
             android:defaultValue="1883"
             android:key="pref_port"
             android:selectAllOnFocus="true"
             android:singleLine="true"
-            android:title="Port" />
+            android:title="Port"
+            android:inputType="number"/>
         <!--<SwitchPreference
             android:defaultValue="false"
             android:key="pref_tls"
@@ -25,17 +27,20 @@
             android:key="pref_username"
             android:selectAllOnFocus="true"
             android:singleLine="true"
-            android:title="Username" />
+            android:title="Username"
+            android:inputType="text"/>
         <EditTextPreference
             android:key="pref_password"
             android:password="true"
             android:selectAllOnFocus="true"
             android:singleLine="true"
-            android:title="Password" />
+            android:title="Password"
+            android:inputType="textPassword"/>
         <EditTextPreference
             android:key="pref_device_id"
             android:selectAllOnFocus="true"
             android:singleLine="true"
-            android:title="Device id" />
+            android:title="Device id"
+            android:inputType="text"/>
     </PreferenceCategory>
 </PreferenceScreen>
