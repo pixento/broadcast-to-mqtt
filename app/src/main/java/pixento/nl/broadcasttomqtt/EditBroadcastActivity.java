@@ -4,7 +4,6 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
-import android.support.v4.app.NavUtils;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
@@ -88,7 +87,7 @@ public class EditBroadcastActivity extends AppCompatActivity {
         // Save the prefs
         SharedPreferences.Editor editor = prefs.edit();
         editor.putStringSet(bcPrefsKey, bcItems.toStringSet());
-        editor.apply();
+        editor.commit();
     }
 
     @Override
@@ -109,11 +108,12 @@ public class EditBroadcastActivity extends AppCompatActivity {
             case R.id.action_delete:
                 // Delete the item and navigate up
                 this.deleteBroadcast();
-                NavUtils.navigateUpFromSameTask(this);
+                super.onBackPressed();
                 break;
             case R.id.action_save:
                 // Save the broadcasts
                 this.saveBroadcast();
+                super.onBackPressed();
                 break;
             // Respond to the action bar's Up/Home button
             case android.R.id.home:

@@ -2,6 +2,7 @@ package pixento.nl.broadcasttomqtt;
 
 import android.app.Service;
 import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
@@ -89,6 +90,24 @@ public class MqttBroadcastService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        Context context = this.getApplicationContext();
+        
+        // If the intent is send to retry sending, do this!
+        if (intent != null && intent.getBooleanExtra("retry_sending", false)) {
+            Log.v(TAG, "Received intent, retrying all queued messages.");
+            
+            // Get the MqttConnection instance
+            MqttConnection mqttConnection = MqttConnection.getInstance(context);
+    
+            // Try to publish all messages in the queue
+            mqttConnection.publishAll();
+    
+            // Set another alarm if the queue is not empty
+            if(!mqttConnection.isQueueEmpty()) {
+                mqttConnection.setRetryAlarm(context);
+            }
+        }
+        
         // We want this service to continue running until it is explicitly
         // stopped, so return sticky.
         return START_STICKY;

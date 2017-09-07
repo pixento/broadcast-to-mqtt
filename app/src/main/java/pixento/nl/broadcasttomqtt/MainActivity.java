@@ -2,15 +2,12 @@ package pixento.nl.broadcasttomqtt;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.graphics.PorterDuff;
-import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
-import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -19,16 +16,16 @@ import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import java.util.HashSet;
 
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements SharedPreferences.OnSharedPreferenceChangeListener {
 
     private BroadcastItemAdapter adapter;
     private BroadcastItemList bcItems = new BroadcastItemList();
     private ListView bcListView;
+    SharedPreferences prefs;
 
     private static final String TAG = "MainActivity";
     static final String bcPrefsKey = "broadcast_items";
@@ -42,16 +39,9 @@ public class MainActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
 
         // Get the preferences for the list of broadcasts to listen for
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-        prefs.registerOnSharedPreferenceChangeListener(new SharedPreferences.OnSharedPreferenceChangeListener() {
-            @Override
-            public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-                if (key.equals(bcPrefsKey)) {
-                    MainActivity.this.updateBCListView(sharedPreferences);
-                }
-            }
-        });
-
+        prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        prefs.registerOnSharedPreferenceChangeListener(this);
+        
         // No broadcasts set yet, this is the first run of the app!
         if (!prefs.contains(bcPrefsKey)) {
             // Add some default broadcasts to the config as example
@@ -117,7 +107,33 @@ public class MainActivity extends AppCompatActivity {
         Intent serviceIntent = new Intent(this, MqttBroadcastService.class);
         startService(serviceIntent);
     }
-
+    
+    
+    @Override
+    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+        Log.v(TAG, "Preferences changed, updating BC list");
+        if (key.equals(bcPrefsKey)) {
+            MainActivity.this.updateBCListView(sharedPreferences);
+        }
+    }
+    
+    @Override
+    protected void onResume() {
+        super.onResume();
+    
+        // Register prefs change listener and update list anyway
+        prefs.registerOnSharedPreferenceChangeListener(this);
+        this.updateBCListView(prefs);
+    }
+    
+    @Override
+    protected void onPause() {
+        super.onPause();
+    
+        // Unregister prefs change listener
+        prefs.unregisterOnSharedPreferenceChangeListener(this);
+    }
+    
     private void updateConnectionStateView(ConnectionState.State state) {
         final ImageView icon = (ImageView) findViewById(R.id.connection_icon);
         final ProgressBar connecting = (ProgressBar) findViewById(R.id.progress_connecting);
@@ -190,18 +206,6 @@ public class MainActivity extends AppCompatActivity {
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_main, menu);
-
-        for (int i = 0; i < menu.size(); i++) {
-            Drawable drawable = menu.getItem(i).getIcon();
-            if (drawable != null) {
-                drawable.mutate();
-                drawable.setAlpha(255);
-                // drawable.setTint(getResources().getColor(android.R.color.white));
-                // drawable.setTintMode(PorterDuff.Mode.DST_ATOP);
-                drawable.setColorFilter(getResources().getColor(android.R.color.white), PorterDuff.Mode.DST_IN);
-            }
-        }
-
         return true;
     }
 
@@ -218,22 +222,11 @@ public class MainActivity extends AppCompatActivity {
                 Intent intent = new Intent(this, SettingsActivity.class);
                 startActivity(intent);
                 return true;
-            // Respond to the action bar's Up/Home button
-            // case android.R.id.home:
-            //     NavUtils.navigateUpFromSameTask(this);
-            //     return false;
         }
 
         return super.onOptionsItemSelected(item);
     }
 
-    @Override
-    protected void onStop() {
-        super.onStop();
-        Log.v(TAG, "OnStop called");
-
-
-    }
 
     @Override
     protected void onDestroy() {
@@ -244,44 +237,5 @@ public class MainActivity extends AppCompatActivity {
         MqttConnection connection = MqttConnection.getInstance(this.getApplicationContext());
         connection.setKeepAlive(false);
     }
-
-    @Override
-    protected void onStart() {
-        super.onStart();
-        Log.v(TAG, "onStart called");
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        Log.v(TAG, "onPause called");
-    }
-
-    @Override
-    protected void onRestart() {
-        super.onRestart();
-        Log.v(TAG, "onRestart called");
-    }
-
-    /*@Override
-    public void onBackPressed() {
-        Toast.makeText(this, "Thanks for using application!!", Toast.LENGTH_LONG).show();
-        super.onBackPressed();
-        // finish();
-    }*/
-
-    /*@Override
-    public void onAttachedToWindow() {
-        super.onAttachedToWindow();
-        this.getWindow().setType(WindowManager.LayoutParams.TYPE_KEYGUARD_DIALOG);
-    }*/
-
-    @Override
-    public boolean onKeyDown(int keyCode, KeyEvent event) {
-        if (keyCode == KeyEvent.KEYCODE_HOME || keyCode == KeyEvent.KEYCODE_BACK) {
-            Toast.makeText(this, "Thanks for using application!!", Toast.LENGTH_LONG).show();
-        }
-
-        return super.onKeyDown(keyCode, event);
-    }
+    
 }

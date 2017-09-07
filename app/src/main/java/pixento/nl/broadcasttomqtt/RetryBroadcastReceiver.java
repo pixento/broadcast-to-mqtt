@@ -3,7 +3,6 @@ package pixento.nl.broadcasttomqtt;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.util.Log;
 
 public class RetryBroadcastReceiver extends BroadcastReceiver {
 
@@ -17,17 +16,9 @@ public class RetryBroadcastReceiver extends BroadcastReceiver {
      */
     @Override
     public void onReceive(Context context, Intent intent) {
-        Log.v(TAG, "Received intent, retrying all queued messages.");
-
-        // Get the MqttConnection instance
-        MqttConnection mqttConnection = MqttConnection.getInstance(context);
-
-        // Try to publish all messages in the queue
-        mqttConnection.publishAll();
-
-        // Set another alarm if the queue is not empty
-        if(!mqttConnection.isQueueEmpty()) {
-            mqttConnection.setRetryAlarm(context);
-        }
+        // Forward the intent to the service
+        Intent retry_intent = new Intent(context, MqttBroadcastService.class);
+        retry_intent.putExtra("retry_sending", true);
+        context.startService(retry_intent);
     }
 }
