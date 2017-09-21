@@ -1,15 +1,22 @@
 package pixento.nl.broadcasttomqtt;
 
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.v7.app.ActionBar;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.EditText;
+import android.widget.Toast;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.util.HashSet;
 
@@ -25,7 +32,7 @@ public class EditBroadcastActivity extends AppCompatActivity {
     EditText edit_alias;
     EditText edit_action;
     EditText edit_rate_limit;
-
+    
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -36,21 +43,20 @@ public class EditBroadcastActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
         ActionBar actionBar = getSupportActionBar();
         actionBar.setDisplayHomeAsUpEnabled(true);
-    
+        
         // Get the preferences and the list of broadcasts
         prefs = PreferenceManager.getDefaultSharedPreferences(this);
         bcItems = new BroadcastItemList(
             prefs.getStringSet(bcPrefsKey, new HashSet<String>())
         );
-    
+        
         // Get the broadcast item to edit
         Intent intent = getIntent();
         
         if (intent.hasExtra(EDIT_BROADCAST_ACTION)) {
             actionBar.setTitle("Edit broadcast");
             broadcast = bcItems.search(intent.getStringExtra(EDIT_BROADCAST_ACTION));
-        }
-        else {
+        } else {
             actionBar.setTitle("Add broadcast");
             broadcast = new BroadcastItem();
             bcItems.add(broadcast);
@@ -65,31 +71,133 @@ public class EditBroadcastActivity extends AppCompatActivity {
         edit_rate_limit.setText(Integer.toString(broadcast.rate_limit));
     }
     
-    void saveBroadcast() {
-        // Get the text inputs, and set to broadcast
-        broadcast.alias = edit_alias.getText().toString();
-        broadcast.action = edit_action.getText().toString();
-        broadcast.rate_limit = Integer.parseInt(edit_rate_limit.getText().toString());
-
-        // And save the list
-        this.saveBroadcastPrefs();
+    boolean saveBroadcast() {
+        if (!validateInput()) {
+            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder.setMessage(R.string.dialog_enter_bcdata_message)
+                   .setNegativeButton(R.string.ok, new DialogInterface.OnClickListener() {
+                       public void onClick(DialogInterface dialog, int id) { }
+                   });
+            builder.create().show();
+            return false;
+        } else {
+            // Get the text inputs, and set to broadcast
+            broadcast.alias = edit_alias.getText().toString();
+            broadcast.action = edit_action.getText().toString();
+            broadcast.rate_limit = Integer.parseInt(edit_rate_limit.getText().toString());
+            
+            // And save the list
+            this.saveBroadcastPrefs();
+            return true;
+        }
     }
-
+    
     void deleteBroadcast() {
-        // Remove the broadcast from the list
-        bcItems.remove(broadcast);
-
-        // And save the list
-        this.saveBroadcastPrefs();
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setMessage(R.string.dialog_delete_bc_message)
+               .setPositiveButton(R.string.ok, new DialogInterface.OnClickListener() {
+                   public void onClick(DialogInterface dialog, int id) {
+                       // Remove the broadcast from the list
+                       bcItems.remove(broadcast);
+    
+                       // And save the list
+                       EditBroadcastActivity.this.saveBroadcastPrefs();
+    
+                       // Leave this screen
+                       EditBroadcastActivity.super.onBackPressed();
+                   }
+               })
+               .setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
+                   public void onClick(DialogInterface dialog, int id) { }
+               });
+        builder.create().show();
     }
-
+    
     void saveBroadcastPrefs() {
         // Save the prefs
         SharedPreferences.Editor editor = prefs.edit();
         editor.putStringSet(bcPrefsKey, bcItems.toStringSet());
         editor.commit();
     }
-
+    
+    boolean validateInput() {
+        if (edit_action.getText().toString().isEmpty() ||
+            edit_alias.getText().toString().isEmpty()) {
+            return false;
+        } else {
+            return true;
+        }
+    }
+    
+    boolean inputHasChanged() {
+        if(!edit_action.getText().toString().equals(broadcast.action) ||
+            !edit_alias.getText().toString().equals(broadcast.alias) ||
+            Integer.parseInt(edit_rate_limit.getText().toString()) != broadcast.rate_limit
+            ) {
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+    
+    /**
+     * The function called as onClick handler of the test button.
+     * onClick handler is set in layout file
+     *
+     * @param view
+     */
+    void sendTestMessageClick(View view) {
+        // Check the input
+        if (!validateInput()) {
+            Toast.makeText(this, "Enter alias and action", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        // Create the test message
+        JSONObject payload = new JSONObject();
+        try {
+            // Add the action and alias
+            payload.put("action", edit_action.getText().toString());
+            payload.put("alias", edit_alias.getText().toString());
+            payload.put("count", 1);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        
+        // Get the MqttConnection instance and enqueue the message
+        MqttConnection connection = MqttConnection.getInstance(view.getContext());
+        connection.enqueue(payload);
+        
+        Toast.makeText(this, "Test message enqueued", Toast.LENGTH_SHORT).show();
+    }
+    
+    @Override
+    public void onBackPressed() {
+        if(inputHasChanged()) {
+            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder.setMessage(R.string.dialog_backbutton_message)
+                   .setPositiveButton(R.string.save, new DialogInterface.OnClickListener() {
+                       public void onClick(DialogInterface dialog, int id) {
+                           // Save and leave screen
+                           if(EditBroadcastActivity.this.saveBroadcast()) {
+                               EditBroadcastActivity.super.onBackPressed();
+                           }
+                       }
+                   })
+                   .setNegativeButton(R.string.dont_save, new DialogInterface.OnClickListener() {
+                       public void onClick(DialogInterface dialog, int id) {
+                           // Do not save, leave the screen
+                           EditBroadcastActivity.super.onBackPressed();
+                       }
+                   });
+            builder.create().show();
+        }
+        else {
+            super.onBackPressed();
+        }
+    }
+    
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
@@ -108,17 +216,18 @@ public class EditBroadcastActivity extends AppCompatActivity {
             case R.id.action_delete:
                 // Delete the item and navigate up
                 this.deleteBroadcast();
-                super.onBackPressed();
+                //super.onBackPressed();
                 break;
             case R.id.action_save:
                 // Save the broadcasts
-                this.saveBroadcast();
-                super.onBackPressed();
+                if (this.saveBroadcast()) {
+                    super.onBackPressed();
+                }
                 break;
             // Respond to the action bar's Up/Home button
             case android.R.id.home:
                 // NavUtils.navigateUpFromSameTask(this);
-                super.onBackPressed();
+                onBackPressed();
                 return true;
         }
         
