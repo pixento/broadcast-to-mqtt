@@ -10,11 +10,9 @@ import android.preference.Preference;
 import android.preference.PreferenceFragment;
 import android.preference.PreferenceGroup;
 import android.preference.PreferenceScreen;
-import android.util.Log;
 import android.widget.EditText;
 
 import java.util.Arrays;
-import java.util.Map;
 
 public class SettingsFragment extends PreferenceFragment implements SharedPreferences.OnSharedPreferenceChangeListener {
 
@@ -90,14 +88,18 @@ public class SettingsFragment extends PreferenceFragment implements SharedPrefer
     }
 
     private void updateSummary(ListPreference pref) {
-        pref.setSummary(pref.getValue());
+        if(pref.getValue() != null) {
+            pref.setSummary(pref.getValue());
+        }
     }
 
     private void updateSummary(EditTextPreference pref) {
-        EditText editor = pref.getEditText();
-        String summary_text = editor
+        if(pref.getText() != null) {
+            EditText editor = pref.getEditText();
+            String summary_text = editor
                 .getTransformationMethod()
                 .getTransformation(pref.getText(), editor).toString();
-        pref.setSummary(summary_text);
+            pref.setSummary(summary_text);
+        }
     }
 }
