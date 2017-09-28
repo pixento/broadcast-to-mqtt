@@ -43,10 +43,12 @@ public class SubBroadcastReceiver extends BroadcastReceiver {
         BroadcastItem current = bcItems.search(action);
 
         // Determine if we should ignore the broadcast due to the rate limit
-        int seconds_ago = (int) (new Date().getTime() - current.last_executed.getTime()) / 1000;
-        if(seconds_ago < current.rate_limit) {
-            // abort, we reached the rate limit
-            return;
+        if(current.last_executed != null) {
+            int seconds_ago = (int) (new Date().getTime() - current.last_executed.getTime()) / 1000;
+            if (seconds_ago < current.rate_limit) {
+                // abort, we reached the rate limit
+                return;
+            }
         }
 
         current.count_executed++;
