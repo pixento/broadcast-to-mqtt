@@ -13,6 +13,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.Switch;
 import android.widget.Toast;
 
 import org.json.JSONException;
@@ -29,6 +30,7 @@ public class EditBroadcastActivity extends AppCompatActivity {
     SharedPreferences prefs;
     BroadcastItemList bcItems;
     BroadcastItem broadcast;
+    Switch edit_enabled;
     EditText edit_alias;
     EditText edit_action;
     EditText edit_rate_limit;
@@ -63,9 +65,11 @@ public class EditBroadcastActivity extends AppCompatActivity {
         }
         
         // Find the inputs, and set the values
+        edit_enabled = (Switch) findViewById(R.id.input_enabled);
         edit_alias = (EditText) findViewById(R.id.input_alias);
         edit_action = (EditText) findViewById(R.id.input_action);
         edit_rate_limit = (EditText) findViewById(R.id.input_rate_limit);
+        edit_enabled.setChecked(broadcast.enabled);
         edit_alias.setText(broadcast.alias);
         edit_action.setText(broadcast.action);
         edit_rate_limit.setText(Integer.toString(broadcast.rate_limit));
@@ -82,6 +86,7 @@ public class EditBroadcastActivity extends AppCompatActivity {
             return false;
         } else {
             // Get the text inputs, and set to broadcast
+            broadcast.enabled = edit_enabled.isChecked();
             broadcast.alias = edit_alias.getText().toString();
             broadcast.action = edit_action.getText().toString();
             broadcast.rate_limit = Integer.parseInt(edit_rate_limit.getText().toString());
@@ -130,7 +135,8 @@ public class EditBroadcastActivity extends AppCompatActivity {
     }
     
     boolean inputHasChanged() {
-        if(!edit_action.getText().toString().equals(broadcast.action) ||
+        if(edit_enabled.isChecked() != broadcast.enabled ||
+            !edit_action.getText().toString().equals(broadcast.action) ||
             !edit_alias.getText().toString().equals(broadcast.alias) ||
             Integer.parseInt(edit_rate_limit.getText().toString()) != broadcast.rate_limit
             ) {

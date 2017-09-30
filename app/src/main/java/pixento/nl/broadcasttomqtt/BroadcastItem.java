@@ -21,8 +21,13 @@ class BroadcastItem {
     /**
      * Indicates the number of MQTT messages sent with this action
      */
-    public int count_executed;
-
+    public int count_executed = 0;
+    
+    /**
+     * Whether the filter is enabled
+     */
+    public boolean enabled = true;
+    
     /**
      * Defines the rate limit for the current broadcast. The number indicates the minimum time
      * in seconds between MQTT messages. So 60s is once each minute.

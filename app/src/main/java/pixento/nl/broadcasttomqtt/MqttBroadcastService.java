@@ -19,75 +19,86 @@ import java.util.HashSet;
  * be forwarded to MQTT.
  */
 public class MqttBroadcastService extends Service {
-
+    
     private BroadcastReceiver broadcastReceiver;
     private SharedPreferences prefs;
     private OnSharedPreferenceChangeListener changeListener;
-
+    
+    public static boolean shouldUpdateFilter = true;
+    
+    //static final String updateIntentFilter = "update_intent_filter";
     private static final String TAG = "MqttBroadcastService";
-
+    
     public MqttBroadcastService() { }
-
+    
     @Override
     public IBinder onBind(Intent intent) {
         // TODO: Return the communication channel to the service.
         throw new UnsupportedOperationException("Not yet implemented");
     }
-
+    
     @Override
     public void onCreate() {
         super.onCreate();
-
+        
         // Get the broadcasts from prefs and update the filter
         prefs = PreferenceManager.getDefaultSharedPreferences(this);
         changeListener = new OnSharedPreferenceChangeListener() {
             @Override
             public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-                if(key.equals(MainActivity.bcPrefsKey)) {
+                if (key.equals(MainActivity.bcPrefsKey)) {
                     MqttBroadcastService.this.updateIntentFilter(sharedPreferences);
                 }
             }
         };
         prefs.registerOnSharedPreferenceChangeListener(changeListener);
         this.updateIntentFilter(prefs);
-
+        
         Log.v(TAG, "Started MqttBroadcastService");
     }
-
+    
     private void updateIntentFilter(SharedPreferences prefs) {
         Log.v(TAG, "Updating the broadcast receiver's filter");
-
+        
+        if(!shouldUpdateFilter) {
+            // Do not update the filter, and reset the flag
+            shouldUpdateFilter = true;
+            return;
+        }
+        
         BroadcastItemList bcItems = new BroadcastItemList(
-                prefs.getStringSet(MainActivity.bcPrefsKey, new HashSet<String>())
+            prefs.getStringSet(MainActivity.bcPrefsKey, new HashSet<String>())
         );
-
+        
+        // Unregister the filter if it is registered
+        if (broadcastReceiver != null) {
+            unregisterReceiver(broadcastReceiver);
+        }
+        
         // Create the intent filters from the set of bc's from the prefs
         IntentFilter filter = new IntentFilter();
         for (BroadcastItem item : bcItems) {
-            filter.addAction(item.action);
+            if (item.enabled) {
+                filter.addAction(item.action);
+            }
         }
-
-        // Unregister the filter if it is registered
-        if(broadcastReceiver != null) {
-            unregisterReceiver(broadcastReceiver);
-        }
-
+        
         // Register the BroadcastReceiver
         broadcastReceiver = new SubBroadcastReceiver();
         registerReceiver(broadcastReceiver, filter);
     }
-
+    
     @Override
     public void onDestroy() {
         super.onDestroy();
-
+        
         // Remove the prefs change listener
         prefs.unregisterOnSharedPreferenceChangeListener(changeListener);
-
+        
         // Make sure to unregister the receiver if the service stops
         unregisterReceiver(broadcastReceiver);
     }
-
+    
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Context context = this.getApplicationContext();
@@ -98,12 +109,12 @@ public class MqttBroadcastService extends Service {
             
             // Get the MqttConnection instance
             MqttConnection mqttConnection = MqttConnection.getInstance(context);
-    
+            
             // Try to publish all messages in the queue
             mqttConnection.publishAll();
-    
+            
             // Set another alarm if the queue is not empty
-            if(!mqttConnection.isQueueEmpty()) {
+            if (!mqttConnection.isQueueEmpty()) {
                 mqttConnection.setRetryAlarm(context);
             }
         }

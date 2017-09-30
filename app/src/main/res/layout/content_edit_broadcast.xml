@@ -15,11 +15,21 @@
         android:orientation="vertical"
         android:padding="16dp">
 
+        <Switch
+            android:id="@+id/input_enabled"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingBottom="8dp"
+            android:paddingTop="8dp"
+            android:switchTextAppearance="@style/TextAppearance.AppCompat.Subhead"
+            android:text="Enable"/>
+
         <TextView
             android:id="@+id/title_alias"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/alias"/>
+            android:text="@string/alias"
+            android:textAppearance="@style/TextAppearance.AppCompat.Subhead"/>
 
         <EditText
             android:id="@+id/input_alias"
@@ -33,7 +43,8 @@
             android:id="@+id/title_action"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/broadcast_action"/>
+            android:text="@string/broadcast_action"
+            android:textAppearance="@style/TextAppearance.AppCompat.Subhead"/>
 
         <EditText
             android:id="@+id/input_action"
@@ -46,7 +57,14 @@
             android:id="@+id/title_rate_limit"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/broadcast_rate_limit"/>
+            android:text="@string/broadcast_rate_limit"
+            android:textAppearance="@style/TextAppearance.AppCompat.Subhead"/>
+
+        <TextView
+            android:id="@+id/textView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/broadcast_rate_limit_decr"/>
 
         <EditText
             android:id="@+id/input_rate_limit"

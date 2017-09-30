@@ -11,7 +11,6 @@ import android.util.Log;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.util.Calendar;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
@@ -41,25 +40,28 @@ public class SubBroadcastReceiver extends BroadcastReceiver {
         
         // Find the broadcast item of the current intent, and get a reference
         BroadcastItem current = bcItems.search(action);
-
+        
+        Log.v(TAG, "Received bc: " + action);
+    
         // Determine if we should ignore the broadcast due to the rate limit
         if(current.last_executed != null) {
             int seconds_ago = (int) (new Date().getTime() - current.last_executed.getTime()) / 1000;
+            Log.v(TAG, "Last bc received: " + seconds_ago + "seconds ago");
             if (seconds_ago < current.rate_limit) {
                 // abort, we reached the rate limit
                 return;
             }
         }
-
+    
         current.count_executed++;
         current.last_executed = new Date();
-        
-        // Save the edited list
+    
+        // Save the edited list, and set MqttBroadcastService to not update it's filter
         SharedPreferences.Editor editor = prefs.edit();
+        MqttBroadcastService.shouldUpdateFilter = false;
         editor.putStringSet(bcPrefsKey, bcItems.toStringSet());
         editor.commit();
         
-        Log.v(TAG, "Received bc: " + action);
         
         // Create a JSON object with all data from the intent
         JSONObject payload = new JSONObject();
