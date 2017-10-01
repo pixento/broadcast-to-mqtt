@@ -5,6 +5,7 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.design.widget.FloatingActionButton;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
@@ -142,13 +143,17 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         // Set icon
         switch (state) {
             case CONNECTED:
-                icon.setImageDrawable(getDrawable(R.drawable.lan_connect));
+                icon.setImageDrawable(
+                    ContextCompat.getDrawable(getApplicationContext(), R.drawable.lan_connect)
+                );
                 break;
             case CONNECTION_ERROR:
             case CONNECTING:
             case DISCONNECTED:
             case HOST_UNKNOWN:
-                icon.setImageDrawable(getDrawable(R.drawable.lan_disconnect));
+                icon.setImageDrawable(
+                    ContextCompat.getDrawable(getApplicationContext(), R.drawable.lan_disconnect)
+                );
                 break;
         }
 

@@ -289,7 +289,7 @@ public class MqttConnection {
             return;
         }
         
-        // Connect if disconnected, and return, this function will be called again after connection.
+        // Connect if disconnected, and return, this function will be called again after connecting.
         if (!this.isConnected() && this.isInstantiated()) {
             this.connect();
         }

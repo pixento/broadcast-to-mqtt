@@ -12,6 +12,7 @@ import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Switch;
 import android.widget.Toast;
@@ -45,6 +46,15 @@ public class EditBroadcastActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
         ActionBar actionBar = getSupportActionBar();
         actionBar.setDisplayHomeAsUpEnabled(true);
+        
+        // Set the onclick listener for the test button
+        Button testSendButton = findViewById(R.id.button_test_message);
+        testSendButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                EditBroadcastActivity.this.sendTestMessageClick(view);
+            }
+        });
         
         // Get the preferences and the list of broadcasts
         prefs = PreferenceManager.getDefaultSharedPreferences(this);
