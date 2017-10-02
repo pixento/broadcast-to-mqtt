@@ -16,10 +16,11 @@
             android:singleLine="true"
             android:title="Port"
             android:inputType="number"/>
-        <!--<SwitchPreference
+        <SwitchPreference
             android:defaultValue="false"
             android:key="pref_tls"
-            android:title="TLS" />-->
+            android:title="TLS"
+            android:summary="Enable TLS encryption"/>
     </PreferenceCategory>
     <PreferenceCategory android:title="Authentication">
 

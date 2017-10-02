@@ -21,8 +21,16 @@ import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.LinkedList;
 import java.util.ListIterator;
+import java.util.Properties;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 
 /**
  * Created by Corniël Joosse on 25-Aug-17.
@@ -49,7 +57,8 @@ public class MqttConnection {
     private String username;
     private String password;
     private boolean reconnect = false;
-        
+    private boolean useTLS = false;
+    
     static MqttConnection getInstance() {
         if (instance != null) {
             return instance;
@@ -114,10 +123,12 @@ public class MqttConnection {
         String server = prefs.getString("pref_host", "").trim();
         String port = prefs.getString("pref_port", "1883").trim();
         String deviceid = prefs.getString("pref_device_id", MqttConnection.getDefaultDeviceId());
+        useTLS = prefs.getBoolean("pref_tls", false);
         
         // Set the topic and server uri
         publishTopic = TextUtils.join("/", new String[] {basePublishTopic, deviceid});
-        serverUri = server.isEmpty() ? "" : "tcp://" + server + ":" + port;
+        String protocol = useTLS ? "ssl" : "tcp";
+        serverUri = server.isEmpty() ? "" : protocol + "://" + server + ":" + port;
         
         // Get the username and password
         username = prefs.getString("pref_username", "").trim();
@@ -206,11 +217,53 @@ public class MqttConnection {
         }
         MqttConnection.this.connectionState.set(ConnectionState.State.CONNECTING);
         
+        
         MqttConnectOptions mqttConnectOptions = new MqttConnectOptions();
         mqttConnectOptions.setAutomaticReconnect(this.keepAlive);
         mqttConnectOptions.setKeepAliveInterval(10);
         mqttConnectOptions.setConnectionTimeout(10);
         mqttConnectOptions.setCleanSession(false);
+        
+        // Setup TLS if enabled in the settings
+        if (useTLS) {
+            if (!TextUtils.isEmpty(System.getProperty("com.ibm.ssl.protocol"))) {
+                // get all com.ibm.ssl properties from the system properties
+                // and set them as the SSL properties to use.
+                
+                Properties sslProperties = new Properties();
+                addSystemProperty("com.ibm.ssl.protocol", sslProperties);
+                addSystemProperty("com.ibm.ssl.contextProvider", sslProperties);
+                addSystemProperty("com.ibm.ssl.keyStore", sslProperties);
+                addSystemProperty("com.ibm.ssl.keyStorePassword", sslProperties);
+                addSystemProperty("com.ibm.ssl.keyStoreType", sslProperties);
+                addSystemProperty("com.ibm.ssl.keyStoreProvider", sslProperties);
+                addSystemProperty("com.ibm.ssl.trustStore", sslProperties);
+                addSystemProperty("com.ibm.ssl.trustStorePassword", sslProperties);
+                addSystemProperty("com.ibm.ssl.trustStoreType", sslProperties);
+                addSystemProperty("com.ibm.ssl.trustStoreProvider", sslProperties);
+                addSystemProperty("com.ibm.ssl.enabledCipherSuites", sslProperties);
+                addSystemProperty("com.ibm.ssl.keyManager", sslProperties);
+                addSystemProperty("com.ibm.ssl.trustManager", sslProperties);
+                mqttConnectOptions.setSSLProperties(sslProperties);
+            } else {
+                
+                // use standard JSSE available in the runtime and
+                // use TLSv1.2 which is the default for a secured mosquitto
+                try {
+                    SSLContext sslContext = SSLContext.getInstance("TLSv1.2");
+                    sslContext.init(
+                        null,
+                        new TrustManager[] {getVeryTrustingTrustManager()},
+                        new java.security.SecureRandom()
+                    );
+                    SSLSocketFactory socketFactory = sslContext.getSocketFactory();
+                    mqttConnectOptions.setSocketFactory(socketFactory);
+                } catch (Exception e) {
+                    connectionState.set(ConnectionState.State.CONNECTION_ERROR);
+                }
+            }
+            
+        }
         
         if (!username.isEmpty()) {
             try {
@@ -245,6 +298,39 @@ public class MqttConnection {
         } catch (MqttException ex) {
             ex.printStackTrace();
         }
+    }
+    
+    private Properties addSystemProperty(String key, Properties props) {
+        String value = System.getProperty(key);
+        if (!TextUtils.isEmpty(value)) {
+            props.put(key, value);
+        }
+        return props;
+    }
+    
+    /**
+     * Create a trust manager which is not too concerned about validating certificates.
+     *
+     * @return a trusting trust manager
+     */
+    private TrustManager getVeryTrustingTrustManager() {
+        return new X509TrustManager() {
+            @Override
+            public void checkClientTrusted(X509Certificate[] x509Certificates, String s) throws CertificateException {
+                
+            }
+            
+            @Override
+            public void checkServerTrusted(X509Certificate[] x509Certificates, String s) throws CertificateException {
+                
+            }
+            
+            @Override
+            public X509Certificate[] getAcceptedIssuers() {
+                return new X509Certificate[0];
+            }
+        };
+        
     }
     
     /**
