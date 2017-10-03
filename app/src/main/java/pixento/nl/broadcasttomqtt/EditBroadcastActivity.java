@@ -9,12 +9,14 @@ import android.support.v7.app.ActionBar;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.text.TextUtils;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Switch;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import org.json.JSONException;
@@ -35,6 +37,7 @@ public class EditBroadcastActivity extends AppCompatActivity {
     EditText edit_alias;
     EditText edit_action;
     EditText edit_rate_limit;
+    TextView view_last_payload;
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -79,10 +82,15 @@ public class EditBroadcastActivity extends AppCompatActivity {
         edit_alias = (EditText) findViewById(R.id.input_alias);
         edit_action = (EditText) findViewById(R.id.input_action);
         edit_rate_limit = (EditText) findViewById(R.id.input_rate_limit);
+        view_last_payload = findViewById(R.id.view_last_payload);
+        
         edit_enabled.setChecked(broadcast.enabled);
         edit_alias.setText(broadcast.alias);
         edit_action.setText(broadcast.action);
         edit_rate_limit.setText(Integer.toString(broadcast.rate_limit));
+        if(!TextUtils.isEmpty(broadcast.last_payload)) {
+            view_last_payload.setText(broadcast.last_payload);
+        }
     }
     
     boolean saveBroadcast() {

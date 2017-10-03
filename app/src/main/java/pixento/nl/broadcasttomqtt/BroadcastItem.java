@@ -34,6 +34,11 @@ class BroadcastItem {
      */
     public int rate_limit = 60;
     
+    /**
+     * The latest sent payload, for debugging reasons
+     */
+    public String last_payload = "";
+    
     BroadcastItem() {
         
     }

@@ -32,6 +32,9 @@
     <string name="connection_connecting">Connecting to MQTT broker</string>
     <string name="connection_disconnected">Not connected to MQTT broker</string>
     <string name="connection_unknown_host">Error connecting, check your server settings.</string>
+    <string name="title_last_payload">Latest MQTT message payload</string>
+    <string name="unknown">Unknown</string>
+    <string name="not_available">Not available</string>
 
 
 </resources>

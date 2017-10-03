@@ -53,15 +53,9 @@ public class SubBroadcastReceiver extends BroadcastReceiver {
             }
         }
     
+        // Update counter and last executed date
         current.count_executed++;
         current.last_executed = new Date();
-    
-        // Save the edited list, and set MqttBroadcastService to not update it's filter
-        SharedPreferences.Editor editor = prefs.edit();
-        MqttBroadcastService.shouldUpdateFilter = false;
-        editor.putStringSet(bcPrefsKey, bcItems.toStringSet());
-        editor.commit();
-        
         
         // Create a JSON object with all data from the intent
         JSONObject payload = new JSONObject();
@@ -77,9 +71,18 @@ public class SubBroadcastReceiver extends BroadcastReceiver {
                     payload.put(key, extras.get(key));
                 }
             }
+    
+            // Create a string from the JSON object
+            current.last_payload = payload.toString(3);
         } catch (JSONException e) {
             e.printStackTrace();
         }
+        
+        // Save the edited list, and set MqttBroadcastService to not update it's filter
+        SharedPreferences.Editor editor = prefs.edit();
+        MqttBroadcastService.shouldUpdateFilter = false;
+        editor.putStringSet(bcPrefsKey, bcItems.toStringSet());
+        editor.commit();
         
         // Get the MqttConnection instance and enqueue the message
         MqttConnection connection = MqttConnection.getInstance(context);
