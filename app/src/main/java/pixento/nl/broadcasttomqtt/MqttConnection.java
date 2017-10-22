@@ -5,6 +5,7 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.text.TextUtils;
 import android.util.Log;
@@ -39,21 +40,22 @@ import javax.net.ssl.X509TrustManager;
 
 public class MqttConnection {
     
-    public ConnectionState connectionState = new ConnectionState();
+    ConnectionState connectionState = new ConnectionState();
+    static String defaultBaseTopic = "android/broadcast";
+    static final int CONNECT_RETRY_TIME = 5;
     
     private static MqttConnection instance = null;
     private MqttAndroidClient mqttAndroidClient;
     private SharedPreferences prefs;
-    private LinkedList<MqttQueueItem> queue = new LinkedList<>();
     
+    private LinkedList<MqttQueueItem> queue = new LinkedList<>();
     private static final int RETRY_TIME = 20;
     private static final String TAG = "MqttConnection";
-    private static final String clientId = "BroadcastToMQTTAndroid";
-    private static String basePublishTopic = "android/broadcast";
+    private static String clientId = "BroadcastToMQTTAndroid";
     
     private boolean keepAlive = false;
     private String serverUri;
-    private String publishTopic;
+    private String globalTopic;
     private String username;
     private String password;
     private boolean reconnect = false;
@@ -73,7 +75,10 @@ public class MqttConnection {
         return instance;
     }
     
-    static String getDefaultDeviceId() {
+    /**
+     * @return A client id based on the device name
+     */
+    static String getDefaultClientId() {
         return android.os.Build.MODEL.replaceAll("(\\s+)", "-").toLowerCase();
     }
     
@@ -106,41 +111,66 @@ public class MqttConnection {
         this.setRetryAlarm(context);
         
         // Create the MQTT client and set the callback class
-        this.updateMqttClient(context);
+        //this.updateMqttClient(context);
         
         // Connect on instantiation
-        this.connect();
+        //this.connect();
     }
     
-    void updatePreferences(Context context) {
-        Log.v(TAG, "Getting the updated preferences");
-        
-        // Disconnect the client
-        this.disconnect();
+    /**
+     * Get the update preferences and re-init the mqtt client.
+     * @param context
+     */
+    void updatePreferences(final Context context) {
+        Log.v(TAG, "Getting the updated preferences. connected: "+ (isConnected()));
         
         // Get the preferences needed
         prefs = PreferenceManager.getDefaultSharedPreferences(context);
         String server = prefs.getString("pref_host", "").trim();
         String port = prefs.getString("pref_port", "1883").trim();
-        String deviceid = prefs.getString("pref_device_id", MqttConnection.getDefaultDeviceId());
+        clientId = prefs.getString("pref_client_id", MqttConnection.getDefaultClientId()).trim();
         useTLS = prefs.getBoolean("pref_tls", false);
-        
+    
         // Set the topic and server uri
-        publishTopic = TextUtils.join("/", new String[] {basePublishTopic, deviceid});
+        String defaultTopic = TextUtils.join("/", new String[] {defaultBaseTopic, clientId});
+        globalTopic = prefs.getString("pref_mqtt_topic", defaultTopic);
         String protocol = useTLS ? "ssl" : "tcp";
         serverUri = server.isEmpty() ? "" : protocol + "://" + server + ":" + port;
-        
+    
         // Get the username and password
         username = prefs.getString("pref_username", "").trim();
         password = prefs.getString("pref_password", "").trim();
         
-        // Update the client with the new url etc.
-        this.updateMqttClient(context);
-        
-        // Then reconnect, but wait for the previous client to be disconnected
-        this.reconnect = true;
-        if (keepAlive && this.connectionState.state == ConnectionState.State.DISCONNECTED) {
-            this.connect();
+        if (isConnected() || (isInstantiated() && keepAlive)) {
+            try {
+                // Do the disconnectioning
+                mqttAndroidClient.disconnect(100, null, new IMqttActionListener() {
+                    @Override
+                    public void onSuccess(IMqttToken asyncActionToken) {
+                        // Set state to disconnect only when really disconnected
+                        MqttConnection.this.connectionState.set(ConnectionState.State.DISCONNECTED);
+                        Log.i(TAG, "Disconnected MQTT client");
+    
+                        // Update the client with the new url etc.
+                        MqttConnection.this.updateMqttClient(context);
+    
+                        // Connect again
+                        MqttConnection.this.delayedConnect(200);
+                    }
+    
+                    @Override
+                    public void onFailure(IMqttToken asyncActionToken, Throwable e) {
+                        Log.i(TAG, "Error disconnecting: " + e.getMessage());
+                    }
+                });
+                
+                
+            } catch (MqttException | NullPointerException | IllegalArgumentException e) {
+                Log.i(TAG, "Error disconnecting: " + e.getMessage());
+            }
+        } else {
+            // Update the client with the new url etc.
+            MqttConnection.this.updateMqttClient(context);
         }
     }
     
@@ -158,28 +188,28 @@ public class MqttConnection {
             public void connectComplete(boolean reconnect, String serverURI) {
                 MqttConnection.this.connectionState.set(ConnectionState.State.CONNECTED);
                 Log.i(TAG, "Connected to: " + serverURI);
-                
+        
                 MqttConnection.this.publishAll();
             }
-            
+    
             @Override
             public void connectionLost(Throwable cause) {
                 MqttConnection.this.connectionState.set(ConnectionState.State.DISCONNECTED);
                 Log.i(TAG, "The Connection was lost.");
-                
+        
                 if (MqttConnection.this.reconnect) {
                     MqttConnection.this.connect();
                 }
             }
-            
+    
             @Override
             public void messageArrived(String topic, MqttMessage message) throws Exception {
                 Log.i(TAG, "Incoming message: " + new String(message.getPayload()));
             }
-            
+    
             @Override
             public void deliveryComplete(IMqttDeliveryToken token) {
-                
+        
             }
         });
         
@@ -203,6 +233,19 @@ public class MqttConnection {
         am.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 1000 * RETRY_TIME, pi);
     }
     
+    void delayedConnect(int delayMs) {
+        Handler handler = new Handler();
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                // Check if still not connected
+                if(MqttConnection.this.connectionState.state != ConnectionState.State.CONNECTED) {
+                    MqttConnection.this.connect();
+                }
+            }
+        }, delayMs);
+    }
+    
     /**
      * Connect to the configured MQTT server
      */
@@ -219,10 +262,10 @@ public class MqttConnection {
         
         
         MqttConnectOptions mqttConnectOptions = new MqttConnectOptions();
-        mqttConnectOptions.setAutomaticReconnect(this.keepAlive);
+        mqttConnectOptions.setAutomaticReconnect(false); // this.keepAlive);
         mqttConnectOptions.setKeepAliveInterval(10);
         mqttConnectOptions.setConnectionTimeout(10);
-        mqttConnectOptions.setCleanSession(false);
+        mqttConnectOptions.setCleanSession(true);
         
         // Setup TLS if enabled in the settings
         if (useTLS) {
@@ -291,6 +334,11 @@ public class MqttConnection {
                 public void onFailure(IMqttToken asyncActionToken, Throwable e) {
                     Log.i(TAG, "Failed to connect to " + serverUri + ": " + e.getCause());
                     MqttConnection.this.connectionState.set(ConnectionState.State.CONNECTION_ERROR);
+                    
+                    // Reconnect in x s if keep-alive is true
+                    if(keepAlive) {
+                        delayedConnect(CONNECT_RETRY_TIME * 1000);
+                    }
                 }
             });
             
@@ -339,21 +387,36 @@ public class MqttConnection {
     void disconnect() {
         if (this.isInstantiated()) {
             try {
-                // Set state to disconnect even when disconnect throws an exception
-                MqttConnection.this.connectionState.set(ConnectionState.State.DISCONNECTED);
-                
-                // Do the disconnectioning
+                // Do the disconnectioning, do it also forcibly in case normal disconnect fails
                 mqttAndroidClient.disconnect();
                 Log.i(TAG, "Disconnected MQTT client");
+    
+                // Set state to disconnect only when really disconnected
+                MqttConnection.this.connectionState.set(ConnectionState.State.DISCONNECTED);
             } catch (MqttException | NullPointerException | IllegalArgumentException e) {
                 Log.i(TAG, "Error disconnecting: " + e.getMessage());
+                
+                // Last chance: forcibly disconnect... :-)
+                try {
+                    mqttAndroidClient.disconnectForcibly();
+                    Log.i(TAG, "Disconnected MQTT client forcibly");
+    
+                    // Set state to disconnect only when really disconnected
+                    MqttConnection.this.connectionState.set(ConnectionState.State.DISCONNECTED);
+                } catch (MqttException | NullPointerException | IllegalArgumentException | UnsupportedOperationException e2) {
+                    Log.i(TAG, "Error disconnecting forcibly: " + e2.getMessage());
+                }
             }
         }
     }
     
     void enqueue(JSONObject json) {
+        this.enqueue(json, "");
+    }
+    
+    void enqueue(JSONObject json, String topic) {
         Log.v(TAG, "Enqueueing new message: " + json.toString());
-        queue.add(new MqttQueueItem(json));
+        queue.add(new MqttQueueItem(json, topic));
         this.publishAll();
     }
     
@@ -415,7 +478,11 @@ public class MqttConnection {
             mqttMessage.setPayload(message.payload.toString().getBytes());
             mqttMessage.setQos(2);
             
-            mqttAndroidClient.publish(publishTopic, mqttMessage);
+            // Determine the topic and publish the message
+            String topic = message.topic.isEmpty() ?
+                globalTopic :
+                message.topic;
+            mqttAndroidClient.publish(topic, mqttMessage);
             
             // Some nice logging, yeah!
             Log.i(TAG, "Message Published: " + message.toString());

@@ -4,44 +4,57 @@
     <PreferenceCategory android:title="Connection">
 
         <EditTextPreference
+            android:inputType="textUri"
             android:key="pref_host"
             android:selectAllOnFocus="true"
             android:singleLine="true"
-            android:title="Host"
-            android:inputType="textUri"/>
+            android:title="Host"/>
         <EditTextPreference
             android:defaultValue="1883"
+            android:inputType="number"
             android:key="pref_port"
             android:selectAllOnFocus="true"
             android:singleLine="true"
-            android:title="Port"
-            android:inputType="number"/>
+            android:title="Port"/>
         <SwitchPreference
             android:defaultValue="false"
             android:key="pref_tls"
-            android:title="TLS"
-            android:summary="Enable TLS encryption"/>
+            android:summary="Enable TLS encryption"
+            android:title="TLS"/>
+        <EditTextPreference
+            android:inputType="text"
+            android:key="pref_client_id"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:title="Client ID"/>
+        <EditTextPreference
+            android:inputType="text"
+            android:key="pref_mqtt_topic"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:title="Default MQTT topic"/>
     </PreferenceCategory>
     <PreferenceCategory android:title="Authentication">
 
         <EditTextPreference
+            android:inputType="text"
             android:key="pref_username"
             android:selectAllOnFocus="true"
             android:singleLine="true"
-            android:title="Username"
-            android:inputType="text"/>
+            android:title="Username"/>
         <EditTextPreference
+            android:inputType="textPassword"
             android:key="pref_password"
             android:password="true"
             android:selectAllOnFocus="true"
             android:singleLine="true"
-            android:title="Password"
-            android:inputType="textPassword"/>
-        <EditTextPreference
+            android:title="Password"/>
+        <!--<EditTextPreference
             android:key="pref_device_id"
             android:selectAllOnFocus="true"
             android:singleLine="true"
             android:title="Device id"
-            android:inputType="text"/>
+            android:inputType="text"/>-->
+
     </PreferenceCategory>
 </PreferenceScreen>

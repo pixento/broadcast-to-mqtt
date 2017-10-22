@@ -36,6 +36,7 @@ public class EditBroadcastActivity extends AppCompatActivity {
     Switch edit_enabled;
     EditText edit_alias;
     EditText edit_action;
+    EditText edit_topic;
     EditText edit_rate_limit;
     TextView view_last_payload;
     
@@ -81,12 +82,14 @@ public class EditBroadcastActivity extends AppCompatActivity {
         edit_enabled = (Switch) findViewById(R.id.input_enabled);
         edit_alias = (EditText) findViewById(R.id.input_alias);
         edit_action = (EditText) findViewById(R.id.input_action);
+        edit_topic = (EditText) findViewById(R.id.input_topic);
         edit_rate_limit = (EditText) findViewById(R.id.input_rate_limit);
         view_last_payload = findViewById(R.id.view_last_payload);
         
         edit_enabled.setChecked(broadcast.enabled);
         edit_alias.setText(broadcast.alias);
         edit_action.setText(broadcast.action);
+        edit_topic.setText(broadcast.topic);
         edit_rate_limit.setText(Integer.toString(broadcast.rate_limit));
         if(!TextUtils.isEmpty(broadcast.last_payload)) {
             view_last_payload.setText(broadcast.last_payload);
@@ -107,6 +110,7 @@ public class EditBroadcastActivity extends AppCompatActivity {
             broadcast.enabled = edit_enabled.isChecked();
             broadcast.alias = edit_alias.getText().toString();
             broadcast.action = edit_action.getText().toString();
+            broadcast.topic = edit_topic.getText().toString();
             broadcast.rate_limit = Integer.parseInt(edit_rate_limit.getText().toString());
             
             // And save the list
@@ -155,6 +159,7 @@ public class EditBroadcastActivity extends AppCompatActivity {
     boolean inputHasChanged() {
         if(edit_enabled.isChecked() != broadcast.enabled ||
             !edit_action.getText().toString().equals(broadcast.action) ||
+            !edit_topic.getText().toString().equals(broadcast.topic) ||
             !edit_alias.getText().toString().equals(broadcast.alias) ||
             Integer.parseInt(edit_rate_limit.getText().toString()) != broadcast.rate_limit
             ) {
@@ -191,7 +196,7 @@ public class EditBroadcastActivity extends AppCompatActivity {
         
         // Get the MqttConnection instance and enqueue the message
         MqttConnection connection = MqttConnection.getInstance(view.getContext());
-        connection.enqueue(payload);
+        connection.enqueue(payload, edit_topic.getText().toString());
         
         Toast.makeText(this, "Test message enqueued", Toast.LENGTH_SHORT).show();
     }

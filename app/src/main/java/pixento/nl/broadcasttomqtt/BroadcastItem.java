@@ -4,15 +4,20 @@ import java.util.Date;
 
 class BroadcastItem {
     /**
-     * The action of the broadcast to filter for
-     */
-    public String action = "";
-
-    /**
      * A human readable alias
      */
     public String alias = "";
-
+    
+    /**
+     * The action of the broadcast to filter for
+     */
+    public String action = "";
+    
+    /**
+     * The action of the broadcast to filter for
+     */
+    public String topic = "";
+    
     /**
      * Date of the last MQTT message with this broadcast. Used for the rate limit.
      */

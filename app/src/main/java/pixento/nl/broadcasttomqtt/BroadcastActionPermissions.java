@@ -1,5 +1,7 @@
 package pixento.nl.broadcasttomqtt;
 
+import java.util.HashMap;
+
 /**
  * Created by Corniël Joosse on 06-Sep-17.
  */
@@ -199,4 +201,8 @@ public class BroadcastActionPermissions {
             "android.telephony.action.DEFAULT_SMS_SUBSCRIPTION_CHANGED",
             "android.telephony.action.DEFAULT_SUBSCRIPTION_CHANGED"
     };
+    
+    static final HashMap<String, String[]> ACTION_PERMISSIONS = new HashMap<String, String[]>(){{
+        put("android.intent.action.PHONE_STATE", new String[]{"android.permission.READ_PHONE_STATE"});
+    }};
 }

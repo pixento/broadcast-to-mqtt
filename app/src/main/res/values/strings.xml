@@ -35,6 +35,8 @@
     <string name="title_last_payload">Latest MQTT message payload</string>
     <string name="unknown">Unknown</string>
     <string name="not_available">Not available</string>
+    <string name="mqtt_publish_topic">MQTT publish topic</string>
+    <string name="broadcast_edit_topic_description">Leave empty to use the global topic from the main settings.</string>
 
 
 </resources>

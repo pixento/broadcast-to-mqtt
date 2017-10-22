@@ -22,48 +22,30 @@ import java.util.HashSet;
 
 
 public class MainActivity extends AppCompatActivity implements SharedPreferences.OnSharedPreferenceChangeListener {
-
+    
     private BroadcastItemAdapter adapter;
     private BroadcastItemList bcItems = new BroadcastItemList();
     private ListView bcListView;
     SharedPreferences prefs;
-
+    
     private static final String TAG = "MainActivity";
     static final String bcPrefsKey = "broadcast_items";
-
+    
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
+        
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-
+        
         // Get the preferences for the list of broadcasts to listen for
         prefs = PreferenceManager.getDefaultSharedPreferences(this);
         prefs.registerOnSharedPreferenceChangeListener(this);
         
-        // No broadcasts set yet, this is the first run of the app!
-        if (!prefs.contains(bcPrefsKey)) {
-            // Add some default broadcasts to the config as example
-            BroadcastItemList defaultBroadcastItems = new BroadcastItemList();
-            defaultBroadcastItems.add(new BroadcastItem("com.sonyericsson.alarm.ALARM_ALERT", "Sony alarm"));
-            defaultBroadcastItems.add(new BroadcastItem("com.android.deskclock.ALARM_ALERT", "Android alarm"));
-            defaultBroadcastItems.add(new BroadcastItem("com.android.alarmclock.ALARM_ALERT", "Android alarm"));
-            defaultBroadcastItems.add(new BroadcastItem("com.samsung.sec.android.clockpackage.alarm.ALARM_ALERT", "Samsung alarm"));
-
-            SharedPreferences.Editor editor = prefs.edit();
-            editor.putStringSet(bcPrefsKey, defaultBroadcastItems.toStringSet());
-            editor.commit();
-        }
-
-        // Make sure a device id is set
-        if (!prefs.contains("pref_device_id")) {
-            SharedPreferences.Editor editor = prefs.edit();
-            editor.putString("pref_device_id", MqttConnection.getDefaultDeviceId());
-            editor.commit();
-        }
-
+        // Validate the prefs
+        this.checkPreferences();
+        
         // Create the listview
         bcListView = (ListView) findViewById(R.id.broadcast_list);
         adapter = new BroadcastItemAdapter(this, bcItems);
@@ -77,10 +59,10 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 startActivity(intent);
             }
         });
-
+        
         // Update the content of the listview
         this.updateBCListView(prefs);
-
+        
         // Create the floating action button
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
@@ -91,7 +73,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 startActivity(intent);
             }
         });
-
+        
         // Instantiate the MQTT connection and register for connection state changes
         MqttConnection connection = MqttConnection.getInstance(this.getApplicationContext());
         connection.setKeepAlive(true);
@@ -102,13 +84,48 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 MainActivity.this.updateConnectionStateView(newState);
             }
         });
-
-
+        
+        
         // Start the service which registers the broadcastreceiver
         Intent serviceIntent = new Intent(this, MqttBroadcastService.class);
         startService(serviceIntent);
     }
     
+    /**
+     * Check whether the minimal preferences are available and delete deprecated prefs
+     */
+    public void checkPreferences() {
+        // Open the editor
+        SharedPreferences.Editor editor = prefs.edit();
+        
+        // No broadcasts set yet, this is the first run of the app!
+        if (!prefs.contains(bcPrefsKey)) {
+            // Add some default broadcasts to the config as example
+            BroadcastItemList defaultBroadcastItems = new BroadcastItemList();
+            defaultBroadcastItems.add(new BroadcastItem("com.sonyericsson.alarm.ALARM_ALERT", "Sony alarm"));
+            defaultBroadcastItems.add(new BroadcastItem("com.android.deskclock.ALARM_ALERT", "Android alarm"));
+            defaultBroadcastItems.add(new BroadcastItem("com.android.alarmclock.ALARM_ALERT", "Android alarm"));
+            defaultBroadcastItems.add(new BroadcastItem("com.samsung.sec.android.clockpackage.alarm.ALARM_ALERT", "Samsung alarm"));
+            
+            editor.putStringSet(bcPrefsKey, defaultBroadcastItems.toStringSet());
+        }
+        
+        // Make sure a client id is set
+        String defaultClientId = prefs.getString("pref_device_id", MqttConnection.getDefaultClientId());
+        if (!prefs.contains("pref_client_id")) {
+            // Get the deprecated pref pref_device_id as default client id if existing
+            editor.putString("pref_client_id", defaultClientId);
+        }
+        
+        if (!prefs.contains("pref_mqtt_topic")) {
+            editor.putString(
+                "pref_mqtt_topic",
+                MqttConnection.defaultBaseTopic + '/' + defaultClientId
+            );
+        }
+        
+        editor.commit();
+    }
     
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
@@ -121,7 +138,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     @Override
     protected void onResume() {
         super.onResume();
-    
+        
         // Register prefs change listener and update list anyway
         prefs.registerOnSharedPreferenceChangeListener(this);
         this.updateBCListView(prefs);
@@ -130,7 +147,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     @Override
     protected void onPause() {
         super.onPause();
-    
+        
         // Unregister prefs change listener
         prefs.unregisterOnSharedPreferenceChangeListener(this);
     }
@@ -139,7 +156,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         final ImageView icon = (ImageView) findViewById(R.id.connection_icon);
         final ProgressBar connecting = (ProgressBar) findViewById(R.id.progress_connecting);
         final TextView description = (TextView) findViewById(R.id.connection_state);
-
+        
         // Set icon
         switch (state) {
             case CONNECTED:
@@ -156,7 +173,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 );
                 break;
         }
-
+        
         // Set loading indicator
         switch (state) {
             case CONNECTED:
@@ -168,9 +185,9 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             case CONNECTING:
                 connecting.setVisibility(View.VISIBLE);
                 break;
-
+            
         }
-
+        
         // Set text
         switch (state) {
             case CONNECTED:
@@ -189,38 +206,38 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 description.setText(R.string.connection_unknown_host);
                 break;
         }
-
+        
     }
-
+    
     private void updateBCListView(SharedPreferences prefs) {
         // Get the broadcast items from preference manager
         bcItems = new BroadcastItemList(
-                prefs.getStringSet(bcPrefsKey, new HashSet<String>())
+            prefs.getStringSet(bcPrefsKey, new HashSet<String>())
         );
-
+        
         if (adapter != null) {
             // Update the dataset
             adapter.updateDataSet(bcItems);
-
+            
             // Notify the change
             adapter.notifyDataSetChanged();
         }
     }
-
+    
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_main, menu);
         return true;
     }
-
+    
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         // Handle action bar item clicks here. The action bar will
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
-
+        
         switch (id) {
             case R.id.action_settings:
                 // Open the Settings window
@@ -228,16 +245,16 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 startActivity(intent);
                 return true;
         }
-
+        
         return super.onOptionsItemSelected(item);
     }
-
-
+    
+    
     @Override
     protected void onDestroy() {
         super.onDestroy();
         Log.v(TAG, "onDestroy called");
-
+        
         // Set the MqttConnection to not keep the connection alive
         MqttConnection connection = MqttConnection.getInstance(this.getApplicationContext());
         connection.setKeepAlive(false);

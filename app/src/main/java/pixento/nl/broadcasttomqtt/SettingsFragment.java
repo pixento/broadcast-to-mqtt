@@ -10,6 +10,7 @@ import android.preference.Preference;
 import android.preference.PreferenceFragment;
 import android.preference.PreferenceGroup;
 import android.preference.PreferenceScreen;
+import android.util.Log;
 import android.widget.EditText;
 
 import java.util.Arrays;
@@ -19,6 +20,7 @@ public class SettingsFragment extends PreferenceFragment implements SharedPrefer
     private static final String TAG = "SettingsFragment";
 
     SharedPreferences sharedPreferences;
+    Boolean prefsChanged = false;
 
     public SettingsFragment() {
         // Required empty public constructor
@@ -49,22 +51,28 @@ public class SettingsFragment extends PreferenceFragment implements SharedPrefer
 
     @Override
     public void onPause() {
+        // Log message
+        Log.d(TAG, "Leaving Settings activity");
+        
         // Unregister listeners
         sharedPreferences.unregisterOnSharedPreferenceChangeListener(this);
-
-        // When the user leaves the settings screen, update the prefs of MqttConnection
+    
+        super.onPause();
+        
+        // When the user leaves the settings screen, update the prefs of MqttConnection if changed
         MqttConnection mqttConnection = MqttConnection.getInstance();
-        if(mqttConnection != null) {
+        if(prefsChanged && mqttConnection != null) {
             mqttConnection.updatePreferences(getActivity().getApplicationContext());
         }
-
-        super.onPause();
     }
 
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+        Log.v(TAG, "Setting changed: "+ key);
         Preference pref = getPreferenceScreen().findPreference(key);
         setSummary(pref);
+    
+        prefsChanged = true;
     }
 
     private void setSummary(Preference pref) {

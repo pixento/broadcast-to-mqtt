@@ -86,7 +86,7 @@ public class SubBroadcastReceiver extends BroadcastReceiver {
         
         // Get the MqttConnection instance and enqueue the message
         MqttConnection connection = MqttConnection.getInstance(context);
-        connection.enqueue(payload);
+        connection.enqueue(payload, current.topic);
 
         // Set an retry alarm in case some messages were not sent
         connection.setRetryAlarm(context);
