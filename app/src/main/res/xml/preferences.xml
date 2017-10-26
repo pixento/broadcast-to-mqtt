@@ -21,6 +21,11 @@
             android:key="pref_tls"
             android:summary="Enable TLS encryption"
             android:title="TLS"/>
+
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="MQTT connection">
+
         <EditTextPreference
             android:inputType="text"
             android:key="pref_client_id"
@@ -33,6 +38,13 @@
             android:selectAllOnFocus="true"
             android:singleLine="true"
             android:title="Default MQTT topic"/>
+        <ListPreference
+            android:defaultValue="0"
+            android:entries="@array/prefs_list_qos_options"
+            android:entryValues="@array/prefs_list_qos_options"
+            android:key="pref_mqtt_qos"
+            android:title="Message QOS"/>
+
     </PreferenceCategory>
     <PreferenceCategory android:title="Authentication">
 

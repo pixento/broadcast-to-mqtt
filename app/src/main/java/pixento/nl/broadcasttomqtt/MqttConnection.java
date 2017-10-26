@@ -58,6 +58,7 @@ public class MqttConnection {
     private String globalTopic;
     private String username;
     private String password;
+    private int messageQOS = 0;
     private boolean reconnect = false;
     private boolean useTLS = false;
     
@@ -136,7 +137,8 @@ public class MqttConnection {
         globalTopic = prefs.getString("pref_mqtt_topic", defaultTopic);
         String protocol = useTLS ? "ssl" : "tcp";
         serverUri = server.isEmpty() ? "" : protocol + "://" + server + ":" + port;
-    
+        messageQOS = Integer.parseInt(prefs.getString("pref_mqtt_qos", "0"));
+        
         // Get the username and password
         username = prefs.getString("pref_username", "").trim();
         password = prefs.getString("pref_password", "").trim();
@@ -476,7 +478,7 @@ public class MqttConnection {
             // Create the MQTT message, and publish!
             MqttMessage mqttMessage = new MqttMessage();
             mqttMessage.setPayload(message.payload.toString().getBytes());
-            mqttMessage.setQos(2);
+            mqttMessage.setQos(messageQOS);
             
             // Determine the topic and publish the message
             String topic = message.topic.isEmpty() ?
@@ -485,7 +487,9 @@ public class MqttConnection {
             mqttAndroidClient.publish(topic, mqttMessage);
             
             // Some nice logging, yeah!
-            Log.i(TAG, "Message Published: " + message.toString());
+            Log.i(TAG, String.format(
+                "Message Published (QOS: %d): %s", messageQOS, message.toString()
+            ));
             
             // Return true on success!
             return true;
