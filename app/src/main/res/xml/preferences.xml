@@ -24,7 +24,7 @@
 
     </PreferenceCategory>
 
-    <PreferenceCategory android:title="MQTT connection">
+    <PreferenceCategory android:title="MQTT">
 
         <EditTextPreference
             android:inputType="text"
@@ -67,6 +67,15 @@
             android:singleLine="true"
             android:title="Device id"
             android:inputType="text"/>-->
+
+    </PreferenceCategory>
+    <PreferenceCategory android:title="Other">
+
+        <SwitchPreference
+            android:defaultValue="false"
+            android:key="pref_start_at_boot"
+            android:summary="Start the broadcast listener at boot"
+            android:title="Start at boot"/>
 
     </PreferenceCategory>
 </PreferenceScreen>
