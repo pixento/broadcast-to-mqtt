@@ -12,16 +12,21 @@ public class BootReceiver extends BroadcastReceiver {
     
     @Override
     public void onReceive(Context context, Intent intent) {
-        // Get the preferences needed
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
-        Boolean start_at_boot = prefs.getBoolean("pref_start_at_boot", false);
-    
-        Log.i(TAG, "BOOT_COMPLETED intent received, starting MQTT receiver: "+ start_at_boot);
-        
-        if (start_at_boot) {
-            // Start the service which registers the broadcastreceiver
-            Intent serviceIntent = new Intent(context, MqttBroadcastService.class);
-            context.startService(serviceIntent);
+        // Check if the intent action is correct
+        if(intent.getAction().equals("android.intent.action.BOOT_COMPLETED") ||
+            intent.getAction().equals("android.intent.action.QUICKBOOT_POWERON") ||
+            intent.getAction().equals("com.htc.intent.action.QUICKBOOT_POWERON")) {
+            
+            // Get the preferences needed
+            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+            boolean start_at_boot = prefs.getBoolean("pref_start_at_boot", false);
+            
+            Log.i(TAG, "BOOT_COMPLETED intent received, starting MQTT receiver: " + start_at_boot);
+            
+            if (start_at_boot) {
+                // Start the service which registers the broadcast receiver
+                MqttBroadcastService.startService(context, null);
+            }
         }
     }
 }

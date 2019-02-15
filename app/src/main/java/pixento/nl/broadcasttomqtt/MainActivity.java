@@ -68,7 +68,6 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                //Snackbar.make(view, "ToDo :-D", Snackbar.LENGTH_LONG).setAction("Action", null).show();
                 Intent intent = new Intent(MainActivity.this, EditBroadcastActivity.class);
                 startActivity(intent);
             }
@@ -85,10 +84,8 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             }
         });
         
-        
-        // Start the service which registers the broadcastreceiver
-        Intent serviceIntent = new Intent(this, MqttBroadcastService.class);
-        startService(serviceIntent);
+        // Start the service which registers the broadcast receiver
+        MqttBroadcastService.startService(this, null);
     }
     
     /**
@@ -117,11 +114,17 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             editor.putString("pref_client_id", defaultClientId);
         }
         
+        // Set default global topic
         if (!prefs.contains("pref_mqtt_topic")) {
             editor.putString(
                 "pref_mqtt_topic",
                 MqttConnection.defaultBaseTopic + '/' + defaultClientId
             );
+        }
+        
+        // Set persistent notification icon to true by default
+        if (!prefs.contains(MqttBroadcastService.notificationPrefsKey)) {
+            editor.putBoolean(MqttBroadcastService.notificationPrefsKey, true);
         }
         
         editor.commit();

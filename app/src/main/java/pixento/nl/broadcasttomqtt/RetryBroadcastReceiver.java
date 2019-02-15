@@ -17,8 +17,9 @@ public class RetryBroadcastReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         // Forward the intent to the service
-        Intent retry_intent = new Intent(context, MqttBroadcastService.class);
-        retry_intent.putExtra("retry_sending", true);
-        context.startService(retry_intent);
+        Intent retryIntent = new Intent(context, MqttBroadcastService.class);
+        retryIntent.putExtra("retry_sending", true);
+
+        MqttBroadcastService.startService(context, retryIntent);
     }
 }

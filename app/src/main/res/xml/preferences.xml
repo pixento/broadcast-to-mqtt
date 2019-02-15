@@ -80,7 +80,7 @@
         <SwitchPreference
             android:defaultValue="false"
             android:key="pref_persistent_notification"
-            android:summary="Show a persistent notification to keep the app running"
+            android:summary="Show a persistent notification to prevent the app from being killed when running in the background. This is needed for Android 8 and higher."
             android:title="Persistent notification"/>
 
     </PreferenceCategory>

@@ -347,6 +347,10 @@ public class MqttConnection {
             
         } catch (MqttException ex) {
             ex.printStackTrace();
+        } catch (IllegalArgumentException ex) {
+            ex.printStackTrace();
+        } catch (IllegalStateException ex) {
+            ex.printStackTrace();
         }
     }
     

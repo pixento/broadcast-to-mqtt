@@ -19,6 +19,7 @@ import android.support.v4.content.res.ResourcesCompat;
 import android.util.Log;
 
 import java.util.HashSet;
+import java.util.Set;
 
 /**
  * The MqttBroadcastService runs in the background and makes sure that the dynamically registered
@@ -73,6 +74,21 @@ public class MqttBroadcastService extends Service {
         Log.v(TAG, "Started MqttBroadcastService");
     }
     
+    public static void startService(Context context, Intent serviceIntent) {
+        if(serviceIntent == null) {
+            serviceIntent = new Intent(context, MqttBroadcastService.class);
+        }
+        
+        // If preference 'pref_persistent_notification' is true, start as foreground service
+        // A foreground service always has a notification
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+        if (prefs.getBoolean(notificationPrefsKey, false) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            context.startForegroundService(serviceIntent);
+        }
+        else {
+            context.startService(serviceIntent);
+        }
+    }
     
     private void updateIntentFilter(SharedPreferences prefs) {
         Log.v(TAG, "Updating the broadcast receiver's filter");
@@ -83,9 +99,12 @@ public class MqttBroadcastService extends Service {
             return;
         }
         
-        BroadcastItemList bcItems = new BroadcastItemList(
-            prefs.getStringSet(MainActivity.bcPrefsKey, new HashSet<String>())
-        );
+        // Get the broadcast items from the preferences
+        Set<String> prefBroadcastItems = prefs.getStringSet(MainActivity.bcPrefsKey, null);
+        if (prefBroadcastItems == null) {
+            prefBroadcastItems = new HashSet<>();
+        }
+        BroadcastItemList bcItems = new BroadcastItemList(prefBroadcastItems);
         
         // Unregister the filter if it is registered
         if (broadcastReceiver != null) {
@@ -126,10 +145,20 @@ public class MqttBroadcastService extends Service {
                 .setOngoing(true);
             
             // notificationId is a unique int for each notification that you must define
-            notificationManager.notify(notificationId, mBuilder.build());
+            if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForeground(notificationId, mBuilder.build());
+            }
+            else {
+                notificationManager.notify(notificationId, mBuilder.build());
+            }
         }
         else {
-            notificationManager.cancel(notificationId);
+            if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                stopForeground(STOP_FOREGROUND_DETACH);
+            }
+            else {
+                notificationManager.cancel(notificationId);
+            }
         }
     }
     
@@ -139,7 +168,7 @@ public class MqttBroadcastService extends Service {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             CharSequence name = getString(R.string.app_name);
             String description = getString(R.string.channel_description);
-            int importance = NotificationManager.IMPORTANCE_MIN;
+            int importance = NotificationManager.IMPORTANCE_NONE;
             
             // Create the channel
             NotificationChannel channel = new NotificationChannel(CHANNEL_ID, name, importance);
