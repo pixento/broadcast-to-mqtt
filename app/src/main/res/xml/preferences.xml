@@ -77,5 +77,11 @@
             android:summary="Start the broadcast listener at boot"
             android:title="Start at boot"/>
 
+        <SwitchPreference
+            android:defaultValue="false"
+            android:key="pref_persistent_notification"
+            android:summary="Show a persistent notification to keep the app running"
+            android:title="Persistent notification"/>
+
     </PreferenceCategory>
 </PreferenceScreen>

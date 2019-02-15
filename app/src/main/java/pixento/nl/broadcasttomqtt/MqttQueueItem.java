@@ -10,7 +10,7 @@ import java.util.Date;
  */
 class MqttQueueItem {
     JSONObject payload;
-    String topic = "";
+    String topic;
     int retries;
     
     private Date timeout;

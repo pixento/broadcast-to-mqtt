@@ -1,5 +1,8 @@
 package pixento.nl.broadcasttomqtt;
 
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -7,8 +10,12 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
+import android.os.Build;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
+import android.support.v4.app.NotificationCompat;
+import android.support.v4.app.NotificationManagerCompat;
+import android.support.v4.content.res.ResourcesCompat;
 import android.util.Log;
 
 import java.util.HashSet;
@@ -28,6 +35,9 @@ public class MqttBroadcastService extends Service {
     
     //static final String updateIntentFilter = "update_intent_filter";
     private static final String TAG = "MqttBroadcastService";
+    private static final String CHANNEL_ID = "MqttBroadcastNotification";
+    static final String notificationPrefsKey = "pref_persistent_notification";
+    static final int notificationId = 123;
     
     public MqttBroadcastService() { }
     
@@ -49,18 +59,25 @@ public class MqttBroadcastService extends Service {
                 if (key.equals(MainActivity.bcPrefsKey)) {
                     MqttBroadcastService.this.updateIntentFilter(sharedPreferences);
                 }
+                
+                if (key.equals(notificationPrefsKey)) {
+                    MqttBroadcastService.this.updateNotification(sharedPreferences);
+                }
             }
         };
         prefs.registerOnSharedPreferenceChangeListener(changeListener);
+        
         this.updateIntentFilter(prefs);
+        this.updateNotification(prefs);
         
         Log.v(TAG, "Started MqttBroadcastService");
     }
     
+    
     private void updateIntentFilter(SharedPreferences prefs) {
         Log.v(TAG, "Updating the broadcast receiver's filter");
         
-        if(!shouldUpdateFilter) {
+        if (!shouldUpdateFilter) {
             // Do not update the filter, and reset the flag
             shouldUpdateFilter = true;
             return;
@@ -86,6 +103,53 @@ public class MqttBroadcastService extends Service {
         // Register the BroadcastReceiver
         broadcastReceiver = new SubBroadcastReceiver();
         registerReceiver(broadcastReceiver, filter);
+    }
+    
+    private void updateNotification(SharedPreferences prefs) {
+        Log.v(TAG, "Updating the broadcast receiver service notification");
+        this.createNotificationChannel();
+        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
+        
+        // Check if persistent notification should be created
+        if (prefs.getBoolean(notificationPrefsKey, false)) {
+            Intent notificationIntent = new Intent(this, MainActivity.class);
+            notificationIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            PendingIntent startAppIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0);
+            
+            NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setSmallIcon(R.drawable.notification_icon)
+                .setContentTitle(getString(R.string.notification_title))
+                .setColor(ResourcesCompat.getColor(getResources(), R.color.colorPrimary, null))
+                .setShowWhen(false)
+                .setContentIntent(startAppIntent)
+                .setPriority(NotificationCompat.PRIORITY_MIN)
+                .setOngoing(true);
+            
+            // notificationId is a unique int for each notification that you must define
+            notificationManager.notify(notificationId, mBuilder.build());
+        }
+        else {
+            notificationManager.cancel(notificationId);
+        }
+    }
+    
+    private void createNotificationChannel() {
+        // Create the NotificationChannel, but only on API 26+ because
+        // the NotificationChannel class is new and not in the support library
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            CharSequence name = getString(R.string.app_name);
+            String description = getString(R.string.channel_description);
+            int importance = NotificationManager.IMPORTANCE_MIN;
+            
+            // Create the channel
+            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, name, importance);
+            channel.setDescription(description);
+            
+            // Register the channel with the system; you can't change the importance
+            // or other notification behaviors after this
+            NotificationManager notificationManager = getSystemService(NotificationManager.class);
+            notificationManager.createNotificationChannel(channel);
+        }
     }
     
     @Override

@@ -38,5 +38,6 @@
     <string name="mqtt_publish_topic">MQTT publish topic</string>
     <string name="broadcast_edit_topic_description">Leave empty to use the global topic from the main settings.</string>
 
-
+    <string name="notification_title">Broadcast to MQTT is running…</string>
+    <string name="channel_description">Send broadcast intents to MQTT</string>
 </resources>
