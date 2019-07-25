@@ -42,14 +42,14 @@ public class MqttConnection {
     
     ConnectionState connectionState = new ConnectionState();
     static String defaultBaseTopic = "android/broadcast";
-    static final int CONNECT_RETRY_TIME = 5;
+    static final int CONNECT_RETRY_TIME = 2;
     
     private static MqttConnection instance = null;
     private MqttAndroidClient mqttAndroidClient;
     private SharedPreferences prefs;
     
     private LinkedList<MqttQueueItem> queue = new LinkedList<>();
-    private static final int RETRY_TIME = 20;
+    private static final int RETRY_TIME = 5;
     private static final String TAG = "MqttConnection";
     private static String clientId = "BroadcastToMQTTAndroid";
     
@@ -84,7 +84,7 @@ public class MqttConnection {
     }
     
     void setKeepAlive(boolean keepAlive) {
-        Log.v(TAG, "Set keep-alive to " + keepAlive);
+        Log.d(TAG, "Set keep-alive to " + keepAlive);
         this.keepAlive = keepAlive;
         if (keepAlive) {
             this.connect();
@@ -120,10 +120,11 @@ public class MqttConnection {
     
     /**
      * Get the update preferences and re-init the mqtt client.
+     *
      * @param context
      */
     void updatePreferences(final Context context) {
-        Log.v(TAG, "Getting the updated preferences. connected: "+ (isConnected()));
+        Log.i(TAG, "Getting the updated preferences. connected: " + (isConnected()));
         
         // Get the preferences needed
         prefs = PreferenceManager.getDefaultSharedPreferences(context);
@@ -131,7 +132,7 @@ public class MqttConnection {
         String port = prefs.getString("pref_port", "1883").trim();
         clientId = prefs.getString("pref_client_id", MqttConnection.getDefaultClientId()).trim();
         useTLS = prefs.getBoolean("pref_tls", false);
-    
+        
         // Set the topic and server uri
         String defaultTopic = TextUtils.join("/", new String[] {defaultBaseTopic, clientId});
         globalTopic = prefs.getString("pref_mqtt_topic", defaultTopic);
@@ -152,14 +153,14 @@ public class MqttConnection {
                         // Set state to disconnect only when really disconnected
                         MqttConnection.this.connectionState.set(ConnectionState.State.DISCONNECTED);
                         Log.i(TAG, "Disconnected MQTT client");
-    
+                        
                         // Update the client with the new url etc.
                         MqttConnection.this.updateMqttClient(context);
-    
+                        
                         // Connect again
                         MqttConnection.this.delayedConnect(200);
                     }
-    
+                    
                     @Override
                     public void onFailure(IMqttToken asyncActionToken, Throwable e) {
                         Log.i(TAG, "Error disconnecting: " + e.getMessage());
@@ -182,7 +183,7 @@ public class MqttConnection {
      * @param context
      */
     private void updateMqttClient(Context context) {
-        Log.v(TAG, "Updating MQTT client");
+        Log.d(TAG, "Updating MQTT client");
         
         mqttAndroidClient = new MqttAndroidClient(context, serverUri, clientId);
         mqttAndroidClient.setCallback(new MqttCallbackExtended() {
@@ -190,28 +191,28 @@ public class MqttConnection {
             public void connectComplete(boolean reconnect, String serverURI) {
                 MqttConnection.this.connectionState.set(ConnectionState.State.CONNECTED);
                 Log.i(TAG, "Connected to: " + serverURI);
-        
+                
                 MqttConnection.this.publishAll();
             }
-    
+            
             @Override
             public void connectionLost(Throwable cause) {
                 MqttConnection.this.connectionState.set(ConnectionState.State.DISCONNECTED);
                 Log.i(TAG, "The Connection was lost.");
-        
+                
                 if (MqttConnection.this.reconnect) {
                     MqttConnection.this.connect();
                 }
             }
-    
+            
             @Override
             public void messageArrived(String topic, MqttMessage message) throws Exception {
                 Log.i(TAG, "Incoming message: " + new String(message.getPayload()));
             }
-    
+            
             @Override
             public void deliveryComplete(IMqttDeliveryToken token) {
-        
+            
             }
         });
         
@@ -223,7 +224,7 @@ public class MqttConnection {
      * @param context
      */
     void setRetryAlarm(Context context) {
-        Log.v(TAG, "Setting retry alarm in " + RETRY_TIME + "s");
+        Log.i(TAG, "Setting retry alarm in " + RETRY_TIME + "s");
         
         AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         
@@ -241,7 +242,7 @@ public class MqttConnection {
             @Override
             public void run() {
                 // Check if still not connected
-                if(MqttConnection.this.connectionState.state != ConnectionState.State.CONNECTED) {
+                if (MqttConnection.this.connectionState.state != ConnectionState.State.CONNECTED) {
                     MqttConnection.this.connect();
                 }
             }
@@ -249,7 +250,18 @@ public class MqttConnection {
     }
     
     /**
-     * Connect to the configured MQTT server
+     * Make sure connection is made and enqueued messages are published
+     */
+    void connectAndPublish() {
+        if (this.isConnected()) {
+            this.publishAll();
+        } else {
+            this.connect();
+        }
+    }
+    
+    /**
+     * Connect to the configured MQTT server and call this.publishAll() on success.
      */
     void connect() {
         // Reset reconnection flag
@@ -264,7 +276,7 @@ public class MqttConnection {
         
         
         MqttConnectOptions mqttConnectOptions = new MqttConnectOptions();
-        mqttConnectOptions.setAutomaticReconnect(false);
+        mqttConnectOptions.setAutomaticReconnect(true);
         mqttConnectOptions.setKeepAliveInterval(10);
         mqttConnectOptions.setConnectionTimeout(10);
         mqttConnectOptions.setCleanSession(true);
@@ -324,12 +336,16 @@ public class MqttConnection {
             mqttAndroidClient.connect(mqttConnectOptions, null, new IMqttActionListener() {
                 @Override
                 public void onSuccess(IMqttToken asyncActionToken) {
+                    // Set the buffer options
                     DisconnectedBufferOptions disconnectedBufferOptions = new DisconnectedBufferOptions();
                     disconnectedBufferOptions.setBufferEnabled(true);
                     disconnectedBufferOptions.setBufferSize(100);
                     disconnectedBufferOptions.setPersistBuffer(false);
                     disconnectedBufferOptions.setDeleteOldestMessages(false);
                     mqttAndroidClient.setBufferOpts(disconnectedBufferOptions);
+                    
+                    // Publish all queued messages
+                    MqttConnection.this.publishAll();
                 }
                 
                 @Override
@@ -338,7 +354,7 @@ public class MqttConnection {
                     MqttConnection.this.connectionState.set(ConnectionState.State.CONNECTION_ERROR);
                     
                     // Reconnect in x s if keep-alive is true
-                    if(keepAlive) {
+                    if (keepAlive) {
                         delayedConnect(CONNECT_RETRY_TIME * 1000);
                     }
                 }
@@ -396,7 +412,7 @@ public class MqttConnection {
                 // Do the disconnectioning, do it also forcibly in case normal disconnect fails
                 mqttAndroidClient.disconnect();
                 Log.i(TAG, "Disconnected MQTT client");
-    
+                
                 // Set state to disconnect only when really disconnected
                 MqttConnection.this.connectionState.set(ConnectionState.State.DISCONNECTED);
             } catch (MqttException | NullPointerException | IllegalArgumentException e) {
@@ -406,7 +422,7 @@ public class MqttConnection {
                 try {
                     mqttAndroidClient.disconnectForcibly();
                     Log.i(TAG, "Disconnected MQTT client forcibly");
-    
+                    
                     // Set state to disconnect only when really disconnected
                     MqttConnection.this.connectionState.set(ConnectionState.State.DISCONNECTED);
                 } catch (MqttException | NullPointerException | IllegalArgumentException | UnsupportedOperationException e2) {
@@ -416,14 +432,13 @@ public class MqttConnection {
         }
     }
     
-    void enqueue(JSONObject json) {
-        this.enqueue(json, "");
+    void enqueue(JSONObject json, String topic) {
+        Log.i(TAG, "Enqueueing new message: " + json.toString());
+        queue.add(new MqttQueueItem(json, topic));
     }
     
-    void enqueue(JSONObject json, String topic) {
-        Log.v(TAG, "Enqueueing new message: " + json.toString());
-        queue.add(new MqttQueueItem(json, topic));
-        this.publishAll();
+    void enqueue(JSONObject json) {
+        this.enqueue(json, "");
     }
     
     void enqueue(String message) {
@@ -454,15 +469,15 @@ public class MqttConnection {
         while (queueIterator.hasNext()) {
             MqttQueueItem item = queueIterator.next();
             
-            Log.v(TAG, item.toString());
+            Log.d(TAG, item.toString());
             if (!item.isFresh() || this.publish(item)) {
                 // Remove messages that have been send or have timed out
                 queueIterator.remove();
-                Log.v(TAG, "Removed message due to freshness or is published");
+                Log.i(TAG, "Removed message due to freshness or is published");
             } else if (item.retries-- < 1) {
                 // Remove messages that have tried enough
                 queueIterator.remove();
-                Log.v(TAG, "Removed message due to retries");
+                Log.i(TAG, "Removed message due to retries");
             }
         }
         

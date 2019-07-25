@@ -46,8 +46,9 @@ public class SubBroadcastReceiver extends BroadcastReceiver {
         // Determine if we should ignore the broadcast due to the rate limit
         if(current.last_executed != null) {
             int seconds_ago = (int) (new Date().getTime() - current.last_executed.getTime()) / 1000;
-            Log.v(TAG, "Last bc received: " + seconds_ago + "seconds ago");
-            if (seconds_ago < current.rate_limit) {
+            Log.v(TAG, "Last bc received: " + seconds_ago + " seconds ago");
+            if (seconds_ago < current.rate_limit && seconds_ago > 0) {
+                Log.w(TAG, "BC intent blocked, last one was: " + seconds_ago + " seconds ago, rate limit: " + current.rate_limit);
                 // abort, we reached the rate limit
                 return;
             }
@@ -87,6 +88,7 @@ public class SubBroadcastReceiver extends BroadcastReceiver {
         // Get the MqttConnection instance and enqueue the message
         MqttConnection connection = MqttConnection.getInstance(context);
         connection.enqueue(payload, current.topic);
+        connection.connectAndPublish();
 
         // Set an retry alarm in case some messages were not sent
         connection.setRetryAlarm(context);

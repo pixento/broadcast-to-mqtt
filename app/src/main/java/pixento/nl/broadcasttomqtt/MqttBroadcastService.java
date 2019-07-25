@@ -156,9 +156,7 @@ public class MqttBroadcastService extends Service {
             if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 stopForeground(STOP_FOREGROUND_DETACH);
             }
-            else {
-                notificationManager.cancel(notificationId);
-            }
+            notificationManager.cancel(notificationId);
         }
     }
     
@@ -168,7 +166,7 @@ public class MqttBroadcastService extends Service {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             CharSequence name = getString(R.string.app_name);
             String description = getString(R.string.channel_description);
-            int importance = NotificationManager.IMPORTANCE_NONE;
+            int importance = NotificationManager.IMPORTANCE_MIN;
             
             // Create the channel
             NotificationChannel channel = new NotificationChannel(CHANNEL_ID, name, importance);

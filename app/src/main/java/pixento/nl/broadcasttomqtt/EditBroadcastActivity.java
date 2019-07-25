@@ -197,6 +197,7 @@ public class EditBroadcastActivity extends AppCompatActivity {
         // Get the MqttConnection instance and enqueue the message
         MqttConnection connection = MqttConnection.getInstance(view.getContext());
         connection.enqueue(payload, edit_topic.getText().toString());
+        connection.connectAndPublish();
         
         Toast.makeText(this, "Test message enqueued", Toast.LENGTH_SHORT).show();
     }
