@@ -35,9 +35,9 @@ class BroadcastItem {
     
     /**
      * Defines the rate limit for the current broadcast. The number indicates the minimum time
-     * in seconds between MQTT messages. So 60s is once each minute.
+     * in seconds between MQTT messages. So 2s is once each minute.
      */
-    public int rate_limit = 60;
+    public int rate_limit = 2;
     
     /**
      * The latest sent payload, for debugging reasons
